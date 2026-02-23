@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
 
+export const runtime = "edge";
+
 export default async function ProtectedLayout({
   children,
 }: {

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
+export const runtime = "edge";
+
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();

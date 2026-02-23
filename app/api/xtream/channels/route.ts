@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { createXtreamAPI } from "@/lib/xtream";
 
+export const runtime = "edge";
+
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
