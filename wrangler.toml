@@ -1,6 +1,6 @@
 name = "kanalista4-0"
 compatibility_date = "2024-01-01"
-pages_build_output_dir = ".next"
+pages_build_output_dir = ".cf-pages-webroot"
 
 [vars]
 NEXTAUTH_URL = "https://channel.exyuiptv.org"
