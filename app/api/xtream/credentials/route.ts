@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { resolveAuthenticatedUserId } from "@/lib/resolve-auth-user";
 
 export const runtime = "edge";
 
@@ -8,24 +9,18 @@ export async function GET(req: NextRequest) {
   try {
     const session = await auth();
 
-    if (!session?.user?.id) {
+    if (!session?.user) {
       return NextResponse.json(
         { error: "Nicht authentifiziert" },
         { status: 401 }
       );
     }
 
-    // User ID aus der Session holen
-    const { data: user } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("google_id", session.user.id)
-      .single();
-
-    if (!user) {
+    const userId = await resolveAuthenticatedUserId(session);
+    if (!userId) {
       return NextResponse.json(
-        { error: "Benutzer nicht gefunden" },
-        { status: 404 }
+        { error: "Nicht authentifiziert" },
+        { status: 401 }
       );
     }
 
@@ -33,7 +28,7 @@ export async function GET(req: NextRequest) {
     const { data: credentials, error } = await supabaseAdmin
       .from("xtream_credentials")
       .select("id, dns, username, label, created_at")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -58,7 +53,7 @@ export async function DELETE(req: NextRequest) {
   try {
     const session = await auth();
 
-    if (!session?.user?.id) {
+    if (!session?.user) {
       return NextResponse.json(
         { error: "Nicht authentifiziert" },
         { status: 401 }
@@ -75,31 +70,25 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    // User ID aus der Session holen
-    const { data: user } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("google_id", session.user.id)
-      .single();
-
-    if (!user) {
+    const userId = await resolveAuthenticatedUserId(session);
+    if (!userId) {
       return NextResponse.json(
-        { error: "Benutzer nicht gefunden" },
-        { status: 404 }
+        { error: "Nicht authentifiziert" },
+        { status: 401 }
       );
     }
 
-    // Credential löschen (nur wenn es dem User gehört)
+    // Credential lÃ¶schen (nur wenn es dem User gehÃ¶rt)
     const { error } = await supabaseAdmin
       .from("xtream_credentials")
       .delete()
       .eq("id", credentialId)
-      .eq("user_id", user.id);
+      .eq("user_id", userId);
 
     if (error) {
       console.error("Supabase error:", error);
       return NextResponse.json(
-        { error: "Fehler beim Löschen der Credential" },
+        { error: "Fehler beim LÃ¶schen der Credential" },
         { status: 500 }
       );
     }

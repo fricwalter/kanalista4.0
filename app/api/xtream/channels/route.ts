@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { createXtreamAPI } from "@/lib/xtream";
+import { resolveAuthenticatedUserId } from "@/lib/resolve-auth-user";
 
 export const runtime = "edge";
 
@@ -9,7 +10,15 @@ export async function GET(req: NextRequest) {
   try {
     const session = await auth();
 
-    if (!session?.user?.id) {
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: "Nicht authentifiziert" },
+        { status: 401 }
+      );
+    }
+
+    const userId = await resolveAuthenticatedUserId(session);
+    if (!userId) {
       return NextResponse.json(
         { error: "Nicht authentifiziert" },
         { status: 401 }
@@ -23,7 +32,7 @@ export async function GET(req: NextRequest) {
 
     if (!type || !["live", "vod", "series"].includes(type)) {
       return NextResponse.json(
-        { error: "Ungültiger Typ: live, vod oder series erwartet" },
+        { error: "Ungueltiger Typ: live, vod oder series erwartet" },
         { status: 400 }
       );
     }
@@ -35,21 +44,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // User ID aus der Session holen
-    const { data: user } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("google_id", session.user.id)
-      .single();
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Benutzer nicht gefunden" },
-        { status: 404 }
-      );
-    }
-
-    // 1. Cache prüfen (wenn kein forceRefresh)
     if (!forceRefresh) {
       const { data: cached } = await supabaseAdmin
         .from("channel_cache")
@@ -67,12 +61,11 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 2. Xtream Credentials aus Supabase laden
     const { data: cred } = await supabaseAdmin
       .from("xtream_credentials")
       .select("*")
       .eq("id", credId)
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .single();
 
     if (!cred) {
@@ -82,7 +75,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // 3. Frisch von Xtream API laden
     const api = createXtreamAPI(cred.dns, cred.username, cred.password);
     let data;
 
@@ -98,10 +90,9 @@ export async function GET(req: NextRequest) {
         break;
     }
 
-    // 4. In Supabase cachen (upsert)
     await supabaseAdmin.from("channel_cache").upsert(
       {
-        user_id: user.id,
+        user_id: userId,
         credential_id: credId,
         type,
         data,
@@ -117,7 +108,7 @@ export async function GET(req: NextRequest) {
   } catch (error: any) {
     console.error("Channels error:", error);
     return NextResponse.json(
-      { error: error.message || "Fehler beim Laden der Kanäle" },
+      { error: error.message || "Fehler beim Laden der Kanaele" },
       { status: 500 }
     );
   }

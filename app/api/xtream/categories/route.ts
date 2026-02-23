@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { createXtreamAPI } from "@/lib/xtream";
+import { resolveAuthenticatedUserId } from "@/lib/resolve-auth-user";
 
 export const runtime = "edge";
 
@@ -9,7 +10,15 @@ export async function GET(req: NextRequest) {
   try {
     const session = await auth();
 
-    if (!session?.user?.id) {
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: "Nicht authentifiziert" },
+        { status: 401 }
+      );
+    }
+
+    const userId = await resolveAuthenticatedUserId(session);
+    if (!userId) {
       return NextResponse.json(
         { error: "Nicht authentifiziert" },
         { status: 401 }
@@ -22,7 +31,7 @@ export async function GET(req: NextRequest) {
 
     if (!type || !["live", "vod", "series"].includes(type)) {
       return NextResponse.json(
-        { error: "Ungültiger Typ: live, vod oder series erwartet" },
+        { error: "UngÃ¼ltiger Typ: live, vod oder series erwartet" },
         { status: 400 }
       );
     }
@@ -34,26 +43,12 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // User ID aus der Session holen
-    const { data: user } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("google_id", session.user.id)
-      .single();
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Benutzer nicht gefunden" },
-        { status: 404 }
-      );
-    }
-
     // Xtream Credentials aus Supabase laden
     const { data: cred } = await supabaseAdmin
       .from("xtream_credentials")
       .select("dns, username, password")
       .eq("id", credId)
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .single();
 
     if (!cred) {

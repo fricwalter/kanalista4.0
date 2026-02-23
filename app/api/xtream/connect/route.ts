@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabase-admin";
 import { createXtreamAPI } from "@/lib/xtream";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { resolveAuthenticatedUserId } from "@/lib/resolve-auth-user";
 
 export const runtime = "edge";
 
@@ -9,7 +10,15 @@ export async function POST(req: NextRequest) {
   try {
     const session = await auth();
 
-    if (!session?.user?.id) {
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: "Nicht authentifiziert" },
+        { status: 401 }
+      );
+    }
+
+    const userId = await resolveAuthenticatedUserId(session);
+    if (!userId) {
       return NextResponse.json(
         { error: "Nicht authentifiziert" },
         { status: 401 }
@@ -31,25 +40,11 @@ export async function POST(req: NextRequest) {
     const xtream = createXtreamAPI(dns, username, password);
     const userInfo = await xtream.validateLogin();
 
-    // User ID aus der Session holen
-    const { data: user } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("google_id", session.user.id)
-      .single();
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Benutzer nicht gefunden" },
-        { status: 404 }
-      );
-    }
-
     // Credentials in Supabase speichern
     const { data: credential, error } = await supabaseAdmin
       .from("xtream_credentials")
       .insert({
-        user_id: user.id,
+        user_id: userId,
         dns: dns.replace(/\/$/, ""),
         username,
         password,
