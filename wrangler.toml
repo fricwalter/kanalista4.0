@@ -1,4 +1,4 @@
-﻿name = "kanalista4-0"
+name = "kanalista4-0"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = ".next"
 
@@ -9,4 +9,3 @@ NEXT_PUBLIC_SUPABASE_URL = "https://supa.exyuiptv.org"
 
 # Umgebungsvariablen fÃ¼r Cloudflare Pages
 # Diese werden in den Cloudflare Dashboard Settings hinzugefÃ¼gt
-

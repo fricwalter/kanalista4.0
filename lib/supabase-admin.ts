@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+// Use safe fallbacks during build so static analysis does not crash when secrets are not injected.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://invalid.local';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'build-time-placeholder';
 
-// Admin Client für Server-seitige Operationen (Service Role)
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     persistSession: false,
