@@ -44,6 +44,12 @@ npm run cf:pages:build
 npx wrangler pages deploy .cf-pages-webroot
 ```
 
+## Supabase Wartung (Admin + Marketing-Spalten)
+
+Wenn eine bestehende Datenbank die neuen User-Spalten noch nicht hat, einmal die SQL-Datei in Supabase SQL Editor ausfuehren:
+
+`supabase/sql/ensure_admin_marketing_columns.sql`
+
 ## Lizenz
 
 MIT
