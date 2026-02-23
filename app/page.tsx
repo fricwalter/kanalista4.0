@@ -1,5 +1,5 @@
 import { signIn } from "@/lib/auth";
-import { Github } from "lucide-react";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -72,7 +72,14 @@ export default function Home() {
 
         {/* Footer */}
         <p className="text-xs text-gray-500 mt-6">
-          By continuing, you agree to our Terms of Service
+          Mit der Nutzung akzeptierst du unsere{" "}
+          <Link href="/nutzungsbedingungen" className="text-violet-300 hover:text-violet-200 underline underline-offset-2">
+            Nutzungsbedingungen
+          </Link>{" "}
+          und{" "}
+          <Link href="/datenschutz" className="text-violet-300 hover:text-violet-200 underline underline-offset-2">
+            Datenschutzerklaerung
+          </Link>.
         </p>
       </div>
     </main>
