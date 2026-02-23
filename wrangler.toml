@@ -1,11 +1,8 @@
 name = "kanalista4-0"
-compatibility_date = "2024-01-01"
+compatibility_date = "2026-02-23"
+compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".cf-pages-webroot"
 
 [vars]
 NEXTAUTH_URL = "https://channel.exyuiptv.org"
 NEXT_PUBLIC_SUPABASE_URL = "https://supa.exyuiptv.org"
-
-
-# Umgebungsvariablen fÃ¼r Cloudflare Pages
-# Diese werden in den Cloudflare Dashboard Settings hinzugefÃ¼gt
