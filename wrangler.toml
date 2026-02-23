@@ -1,0 +1,14 @@
+name = "kanalista4.0"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = ".next"
+
+[vars]
+NEXTAUTH_URL = "https://kanalista4.0.pages.dev"
+NEXT_PUBLIC_SUPABASE_URL = "https://supa.exyuiptv.org"
+
+[build]
+command = "npm run build"
+cwd = "."
+
+# Umgebungsvariablen für Cloudflare Pages
+# Diese werden in den Cloudflare Dashboard Settings hinzugefügt

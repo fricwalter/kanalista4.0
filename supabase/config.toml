@@ -1,0 +1,40 @@
+# Supabase configuration
+project_id = "kanalista4.0"
+
+[api]
+enabled = true
+port = 54321
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[db.pooler]
+enabled = false
+
+[realtime]
+enabled = true
+ip_version = "ipv4"
+
+[studio]
+enabled = true
+port = 54323
+api_url = "https://supa.exyuiptv.org"
+
+[inbucket]
+enabled = true
+port = 54324
+smtp_port = 54325
+pop3_port = 54326
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://kanalista4.0.pages.dev"]
+jwt_expiry = 3600
+enable_signup = true
