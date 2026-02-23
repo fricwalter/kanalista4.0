@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { supabaseAdmin } from "./supabase-admin";
-import { isAdminEmail } from "./resolve-auth-user";
+import { isAdminEmail, isMissingColumnError } from "./resolve-auth-user";
 
 const googleClientId = process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID || "";
 const googleClientSecret = process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET || "";
@@ -22,21 +22,41 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return false;
       }
 
-      // User in Supabase speichern/updaten
-      const { error } = await supabaseAdmin
-        .from("users")
-        .upsert(
-          {
-            google_id: account.providerAccountId,
-            email: user.email,
-            name: user.name,
-            avatar_url: user.image,
-            is_admin: isAdminEmail(user.email),
-          },
-          { onConflict: "google_id" }
-        );
+      const baseUser = {
+        google_id: account.providerAccountId,
+        email: user.email,
+        name: user.name,
+        avatar_url: user.image,
+      };
 
-      return !error;
+      // User in Supabase speichern/updaten (schema-kompatibler Upsert)
+      const { error: upsertByEmailError } = await supabaseAdmin
+        .from("users")
+        .upsert(baseUser, { onConflict: "email" });
+
+      if (upsertByEmailError) {
+        const { error: upsertByGoogleIdError } = await supabaseAdmin
+          .from("users")
+          .upsert(baseUser, { onConflict: "google_id" });
+
+        if (upsertByGoogleIdError) {
+          console.error("Auth upsert failed:", upsertByGoogleIdError);
+          return false;
+        }
+      }
+
+      if (isAdminEmail(user.email)) {
+        const { error: adminFlagError } = await supabaseAdmin
+          .from("users")
+          .update({ is_admin: true })
+          .eq("email", user.email);
+
+        if (adminFlagError && !isMissingColumnError(adminFlagError)) {
+          console.warn("Admin flag update failed:", adminFlagError);
+        }
+      }
+
+      return true;
     },
     async session({ session, token }) {
       if (!token.sub) {

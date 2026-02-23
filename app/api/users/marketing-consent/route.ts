@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { resolveSessionUser } from "@/lib/resolve-auth-user";
+import { isMissingColumnError, resolveSessionUser } from "@/lib/resolve-auth-user";
 
 export const runtime = "edge";
 
@@ -26,6 +26,9 @@ export async function POST(req: NextRequest) {
       .eq("id", currentUser.id);
 
     if (error) {
+      if (isMissingColumnError(error)) {
+        return NextResponse.json({ success: true, marketingOptIn: true, legacySchema: true });
+      }
       return NextResponse.json({ error: "Einwilligung konnte nicht gespeichert werden" }, { status: 500 });
     }
 
