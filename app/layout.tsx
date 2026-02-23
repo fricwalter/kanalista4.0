@@ -8,6 +8,11 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "IPTV Channel Browser - Kanalista 4.0",
   description: "Dein moderner IPTV Channel Browser mit Google Login",
+  icons: {
+    icon: "/websiteicon.png",
+    shortcut: "/websiteicon.png",
+    apple: "/websiteicon.png",
+  },
 };
 
 export default function RootLayout({

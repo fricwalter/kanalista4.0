@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { auth } from "@/lib/auth";
 import { resolveSessionUser } from "@/lib/resolve-auth-user";
 import MarketingConsentGate from "./marketing-consent-gate";
@@ -33,8 +34,14 @@ export default async function ProtectedLayout({
       <header className="glass-card border-b border-white/10 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
-              <span className="text-sm font-semibold text-white">TV</span>
+            <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10">
+              <Image
+                src="/logo.png"
+                alt="Kanalista Logo"
+                width={40}
+                height={40}
+                className="w-full h-full object-cover"
+              />
             </div>
             <span className="text-xl font-bold text-white">Kanalista 4.0</span>
           </Link>
