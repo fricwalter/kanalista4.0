@@ -10,6 +10,9 @@ CREATE TABLE IF NOT EXISTS users (
   google_id TEXT UNIQUE NOT NULL,
   name TEXT,
   avatar_url TEXT,
+  is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+  marketing_opt_in BOOLEAN NOT NULL DEFAULT FALSE,
+  marketing_opt_in_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

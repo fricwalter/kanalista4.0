@@ -2,27 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { createXtreamAPI } from "@/lib/xtream";
-import { resolveAuthenticatedUserId } from "@/lib/resolve-auth-user";
+import { listAdminUserIds, resolveSessionUser } from "@/lib/resolve-auth-user";
 
 export const runtime = "edge";
 
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
-
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: "Nicht authentifiziert" },
-        { status: 401 }
-      );
-    }
-
-    const userId = await resolveAuthenticatedUserId(session);
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Nicht authentifiziert" },
-        { status: 401 }
-      );
+    const currentUser = await resolveSessionUser(session);
+    if (!currentUser) {
+      return NextResponse.json({ error: "Nicht authentifiziert" }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -43,12 +32,23 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const visibleOwnerIds = currentUser.isAdmin
+      ? [currentUser.id]
+      : await listAdminUserIds();
+
+    if (visibleOwnerIds.length === 0) {
+      return NextResponse.json(
+        { error: "Keine Admin-Zugangsdaten vorhanden" },
+        { status: 404 }
+      );
+    }
+
     // Xtream Credentials aus Supabase laden
     const { data: cred } = await supabaseAdmin
       .from("xtream_credentials")
       .select("dns, username, password")
       .eq("id", credId)
-      .eq("user_id", userId)
+      .in("user_id", visibleOwnerIds)
       .single();
 
     if (!cred) {

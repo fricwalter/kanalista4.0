@@ -2,26 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { createXtreamAPI } from "@/lib/xtream";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { resolveAuthenticatedUserId } from "@/lib/resolve-auth-user";
+import { resolveSessionUser } from "@/lib/resolve-auth-user";
 
 export const runtime = "edge";
 
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: "Nicht authentifiziert" },
-        { status: 401 }
-      );
+    const currentUser = await resolveSessionUser(session);
+    if (!currentUser) {
+      return NextResponse.json({ error: "Nicht authentifiziert" }, { status: 401 });
     }
-
-    const userId = await resolveAuthenticatedUserId(session);
-    if (!userId) {
+    if (!currentUser.isAdmin) {
       return NextResponse.json(
-        { error: "Nicht authentifiziert" },
-        { status: 401 }
+        { error: "Nur Admin darf Zugangsdaten verwalten" },
+        { status: 403 }
       );
     }
 
@@ -44,7 +39,7 @@ export async function POST(req: NextRequest) {
     const { data: credential, error } = await supabaseAdmin
       .from("xtream_credentials")
       .insert({
-        user_id: userId,
+        user_id: currentUser.id,
         dns: dns.replace(/\/$/, ""),
         username,
         password,

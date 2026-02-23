@@ -2,27 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { createXtreamAPI } from "@/lib/xtream";
-import { resolveAuthenticatedUserId } from "@/lib/resolve-auth-user";
+import { listAdminUserIds, resolveSessionUser } from "@/lib/resolve-auth-user";
 
 export const runtime = "edge";
 
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
-
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: "Nicht authentifiziert" },
-        { status: 401 }
-      );
-    }
-
-    const userId = await resolveAuthenticatedUserId(session);
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Nicht authentifiziert" },
-        { status: 401 }
-      );
+    const currentUser = await resolveSessionUser(session);
+    if (!currentUser) {
+      return NextResponse.json({ error: "Nicht authentifiziert" }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -42,6 +31,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(
         { error: "credentialId erforderlich" },
         { status: 400 }
+      );
+    }
+
+    const visibleOwnerIds = currentUser.isAdmin
+      ? [currentUser.id]
+      : await listAdminUserIds();
+
+    if (visibleOwnerIds.length === 0) {
+      return NextResponse.json(
+        { error: "Keine Admin-Zugangsdaten vorhanden" },
+        { status: 404 }
       );
     }
 
@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
       .from("xtream_credentials")
       .select("*")
       .eq("id", credId)
-      .eq("user_id", userId)
+      .in("user_id", visibleOwnerIds)
       .single();
 
     if (!cred) {
@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
     if (!categoryId) {
       await supabaseAdmin.from("channel_cache").upsert(
         {
-          user_id: userId,
+          user_id: cred.user_id,
           credential_id: credId,
           type,
           data,

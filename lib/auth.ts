@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { supabaseAdmin } from "./supabase-admin";
+import { isAdminEmail } from "./resolve-auth-user";
 
 const googleClientId = process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID || "";
 const googleClientSecret = process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET || "";
@@ -30,6 +31,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: user.email,
             name: user.name,
             avatar_url: user.image,
+            is_admin: isAdminEmail(user.email),
           },
           { onConflict: "google_id" }
         );
