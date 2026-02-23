@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type") as "live" | "vod" | "series";
     const credId = searchParams.get("credentialId");
+    const categoryId = searchParams.get("categoryId");
     const forceRefresh = searchParams.get("refresh") === "true";
 
     if (!type || !["live", "vod", "series"].includes(type)) {
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    if (!forceRefresh) {
+    if (!forceRefresh && !categoryId) {
       const { data: cached } = await supabaseAdmin
         .from("channel_cache")
         .select("data, cached_at")
@@ -80,26 +81,28 @@ export async function GET(req: NextRequest) {
 
     switch (type) {
       case "live":
-        data = await api.getLiveStreams();
+        data = await api.getLiveStreams(categoryId || undefined);
         break;
       case "vod":
-        data = await api.getVodStreams();
+        data = await api.getVodStreams(categoryId || undefined);
         break;
       case "series":
-        data = await api.getAllSeries();
+        data = await api.getAllSeries(categoryId || undefined);
         break;
     }
 
-    await supabaseAdmin.from("channel_cache").upsert(
-      {
-        user_id: userId,
-        credential_id: credId,
-        type,
-        data,
-        cached_at: new Date().toISOString(),
-      },
-      { onConflict: "credential_id,type" }
-    );
+    if (!categoryId) {
+      await supabaseAdmin.from("channel_cache").upsert(
+        {
+          user_id: userId,
+          credential_id: credId,
+          type,
+          data,
+          cached_at: new Date().toISOString(),
+        },
+        { onConflict: "credential_id,type" }
+      );
+    }
 
     return NextResponse.json({
       data,
