@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "cf:pages:build": "npm run build && node scripts/build-pages-webroot.mjs",
     "start": "next start",
     "lint": "next lint",
     "supabase:start": "supabase start",

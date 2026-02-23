@@ -12,6 +12,7 @@ node_modules/
 
 # Production
 /build
+.cf-pages-webroot/
 
 # Misc
 .DS_Store
