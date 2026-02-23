@@ -68,9 +68,12 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     console.error("Xtream connect error:", error);
+    const message = error?.message || "Fehler bei der Verbindung";
+    const upstreamIssue =
+      /Cloudflare|DNS|Timeout|nicht erreichbar|Verbindung/i.test(message);
     return NextResponse.json(
-      { error: error.message || "Fehler bei der Verbindung" },
-      { status: 400 }
+      { error: message },
+      { status: upstreamIssue ? 502 : 400 }
     );
   }
 }

@@ -1,6 +1,6 @@
 /**
  * Xtream Codes API Wrapper
- * Alle API-Calls laufen Server-seitig - Credentials werden NIEMALS an den Browser gesendet
+ * Alle API-Calls laufen server-seitig.
  */
 
 export interface XtreamUserInfo {
@@ -58,108 +58,147 @@ export interface XtreamSeries {
 }
 
 export class XtreamAPI {
-  private base: string;
+  private baseDns: string;
 
-  constructor(private dns: string, private username: string, private password: string) {
-    // Entferne trailing slash von DNS
-    const cleanDns = dns.replace(/\/$/, '');
-    this.base = `${cleanDns}/player_api.php?username=${username}&password=${password}`;
+  constructor(
+    private dns: string,
+    private username: string,
+    private password: string
+  ) {
+    const cleanDns = dns.trim().replace(/\/+$/, "");
+    this.baseDns = /^https?:\/\//i.test(cleanDns)
+      ? cleanDns
+      : `http://${cleanDns}`;
   }
 
-  /**
-   * Validiert die Xtream Zugangsdaten
-   */
+  private buildUrl(action?: string, params?: Record<string, string>): string {
+    const url = new URL(`${this.baseDns}/player_api.php`);
+    url.searchParams.set("username", this.username);
+    url.searchParams.set("password", this.password);
+    if (action) {
+      url.searchParams.set("action", action);
+    }
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        url.searchParams.set(key, value);
+      }
+    }
+    return url.toString();
+  }
+
+  private mapUpstreamError(status: number, body: string): string {
+    const cf = body.match(/(?:error code[:\s]*|Error\s+)(\d{3})/i)?.[1];
+
+    if (cf === "1016") {
+      return "Xtream DNS konnte nicht aufgeloest werden (Cloudflare 1016). Bitte DNS/Host pruefen.";
+    }
+    if (cf === "521") {
+      return "Xtream Server nicht erreichbar (Cloudflare 521). Bitte Server/Port pruefen.";
+    }
+    if (cf === "522") {
+      return "Xtream Server-Timeout (Cloudflare 522). Bitte Server/Port pruefen.";
+    }
+
+    if (status >= 500) {
+      return "Xtream Server momentan nicht erreichbar.";
+    }
+    if (status >= 400) {
+      return "Xtream Anfrage wurde abgelehnt.";
+    }
+
+    return body.slice(0, 180) || "Unbekannte Antwort vom Xtream Server.";
+  }
+
+  private async request<T>(action?: string, params?: Record<string, string>): Promise<T> {
+    const url = this.buildUrl(action, params);
+    let res: Response;
+
+    try {
+      res = await fetch(url, {
+        headers: {
+          accept: "application/json,text/plain,*/*",
+        },
+      });
+    } catch {
+      throw new Error("Verbindung zum Xtream Server fehlgeschlagen.");
+    }
+
+    const raw = await res.text();
+    let data: unknown = null;
+
+    if (raw) {
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        if (!res.ok) {
+          throw new Error(this.mapUpstreamError(res.status, raw));
+        }
+        throw new Error(this.mapUpstreamError(502, raw));
+      }
+    }
+
+    if (!res.ok) {
+      throw new Error(this.mapUpstreamError(res.status, raw));
+    }
+
+    return data as T;
+  }
+
   async validateLogin(): Promise<XtreamUserInfo> {
-    const res = await fetch(`${this.base}&action=get_series`);
-    const data = await res.json();
+    const data = await this.request<{ user_info?: XtreamUserInfo; message?: string }>();
 
     if (!data.user_info) {
-      throw new Error(data.message || 'Ungültige Xtream Zugangsdaten');
+      throw new Error(data.message || "Ungueltige Xtream Zugangsdaten");
     }
 
     return data.user_info;
   }
 
-  /**
-   * Live TV Kategorien abrufen
-   */
   async getLiveCategories(): Promise<XtreamCategory[]> {
-    const res = await fetch(`${this.base}&action=get_live_categories`);
-    return res.json();
+    return this.request<XtreamCategory[]>("get_live_categories");
   }
 
-  /**
-   * Live Streams abrufen (optional nach Kategorie gefiltert)
-   */
   async getLiveStreams(categoryId?: string): Promise<XtreamStream[]> {
-    let url = `${this.base}&action=get_live_streams`;
-    if (categoryId) {
-      url += `&category_id=${categoryId}`;
-    }
-    const res = await fetch(url);
-    return res.json();
+    return this.request<XtreamStream[]>(
+      "get_live_streams",
+      categoryId ? { category_id: categoryId } : undefined
+    );
   }
 
-  /**
-   * VOD Kategorien abrufen
-   */
   async getVodCategories(): Promise<XtreamCategory[]> {
-    const res = await fetch(`${this.base}&action=get_vod_categories`);
-    return res.json();
+    return this.request<XtreamCategory[]>("get_vod_categories");
   }
 
-  /**
-   * VOD Streams abrufen (optional nach Kategorie gefiltert)
-   */
   async getVodStreams(categoryId?: string): Promise<XtreamStream[]> {
-    let url = `${this.base}&action=get_vod_streams`;
-    if (categoryId) {
-      url += `&category_id=${categoryId}`;
-    }
-    const res = await fetch(url);
-    return res.json();
+    return this.request<XtreamStream[]>(
+      "get_vod_streams",
+      categoryId ? { category_id: categoryId } : undefined
+    );
   }
 
-  /**
-   * Serien Kategorien abrufen
-   */
   async getSeriesCategories(): Promise<XtreamCategory[]> {
-    const res = await fetch(`${this.base}&action=get_series_categories`);
-    return res.json();
+    return this.request<XtreamCategory[]>("get_series_categories");
   }
 
-  /**
-   * Alle Serien abrufen (optional nach Kategorie gefiltert)
-   */
   async getAllSeries(categoryId?: string): Promise<XtreamSeries[]> {
-    let url = `${this.base}&action=get_series`;
-    if (categoryId) {
-      url += `&category_id=${categoryId}`;
-    }
-    const res = await fetch(url);
-    return res.json();
+    return this.request<XtreamSeries[]>(
+      "get_series",
+      categoryId ? { category_id: categoryId } : undefined
+    );
   }
 
-  /**
-   * Episoden einer spezifischen Serie abrufen
-   */
   async getSeriesInfo(seriesId: number): Promise<any> {
-    const res = await fetch(`${this.base}&action=get_series_info&series_id=${seriesId}`);
-    return res.json();
+    return this.request<any>("get_series_info", {
+      series_id: String(seriesId),
+    });
   }
 
-  /**
-   * Stream URL generieren (für zukünftige Verwendung)
-   */
-  getStreamUrl(streamId: number, extension: string = 'm3u8'): string {
-    const cleanDns = this.dns.replace(/\/$/, '');
+  getStreamUrl(streamId: number, extension: string = "m3u8"): string {
+    const cleanDns = this.baseDns.replace(/\/$/, "");
     return `${cleanDns}/${streamId}.${extension}`;
   }
 }
 
-/**
- * Hilfsfunktion zum Erstellen einer XtreamAPI-Instanz
- */
 export function createXtreamAPI(dns: string, username: string, password: string): XtreamAPI {
   return new XtreamAPI(dns, username, password);
 }

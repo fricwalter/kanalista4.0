@@ -40,7 +40,8 @@ export default function CredentialsPage() {
   const loadCredentials = async () => {
     try {
       const res = await fetch("/api/xtream/credentials");
-      const data = await res.json();
+      const raw = await res.text();
+      const data = raw ? JSON.parse(raw) : {};
       setCredentials(data.credentials || []);
     } catch (error) {
       console.error("Error loading credentials:", error);
@@ -62,10 +63,16 @@ export default function CredentialsPage() {
         body: JSON.stringify(formData),
       });
 
-      const data = await res.json();
+      const raw = await res.text();
+      let data: any = {};
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        throw new Error(raw || `Unerwartete Server-Antwort (${res.status})`);
+      }
 
       if (!res.ok) {
-        throw new Error(data.error || "Fehler beim Speichern");
+        throw new Error(data.error || `Fehler beim Speichern (${res.status})`);
       }
 
       setSuccess("Zugangsdaten erfolgreich gespeichert!");
@@ -79,7 +86,7 @@ export default function CredentialsPage() {
   };
 
   const deleteCredential = async (id: string) => {
-    if (!confirm("Möchtest du diesen Zugang wirklich löschen?")) return;
+    if (!confirm("MÃ¶chtest du diesen Zugang wirklich lÃ¶schen?")) return;
 
     try {
       const res = await fetch(`/api/xtream/credentials?id=${id}`, {
@@ -87,7 +94,7 @@ export default function CredentialsPage() {
       });
 
       if (!res.ok) {
-        throw new Error("Fehler beim Löschen");
+        throw new Error("Fehler beim LÃ¶schen");
       }
 
       loadCredentials();
@@ -110,7 +117,7 @@ export default function CredentialsPage() {
 
       {/* Form */}
       <div className="glass-card p-6 mb-6">
-        <h2 className="text-lg font-semibold text-white mb-4">Neuen Zugang hinzufügen</h2>
+        <h2 className="text-lg font-semibold text-white mb-4">Neuen Zugang hinzufÃ¼gen</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -143,7 +150,7 @@ export default function CredentialsPage() {
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="••••••••"
+                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                 className="glass-input w-full"
                 required
               />
@@ -196,12 +203,12 @@ export default function CredentialsPage() {
 
       {/* Credentials List */}
       <div className="glass-card p-6">
-        <h2 className="text-lg font-semibold text-white mb-4">Gespeicherte Zugänge</h2>
+        <h2 className="text-lg font-semibold text-white mb-4">Gespeicherte ZugÃ¤nge</h2>
 
         {credentials.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
             <XCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>Noch keine Zugänge gespeichert</p>
+            <p>Noch keine ZugÃ¤nge gespeichert</p>
           </div>
         ) : (
           <div className="space-y-3">
