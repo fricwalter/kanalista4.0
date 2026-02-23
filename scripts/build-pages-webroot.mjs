@@ -1,4 +1,4 @@
-import { cp, mkdir, rm, access } from "node:fs/promises";
+import { cp, mkdir, rm, access, readdir } from "node:fs/promises";
 import path from "node:path";
 
 const root = process.cwd();
@@ -26,8 +26,15 @@ async function main() {
     await cp(path.join(nextServerApp, "_not-found.html"), path.join(outDir, "404.html"));
   }
 
-  await mkdir(path.join(outDir, "_next"), { recursive: true });
-  await cp(nextStatic, path.join(outDir, "_next", "static"), { recursive: true });
+  const staticOut = path.join(outDir, "_next", "static");
+  await mkdir(staticOut, { recursive: true });
+
+  // .next/static/cache can contain >25 MiB webpack packs that Pages refuses.
+  const staticEntries = await readdir(nextStatic);
+  for (const entry of staticEntries) {
+    if (entry === "cache") continue;
+    await cp(path.join(nextStatic, entry), path.join(staticOut, entry), { recursive: true });
+  }
 
   if (await exists(publicDir)) {
     await cp(publicDir, outDir, { recursive: true });
