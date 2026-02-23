@@ -5,14 +5,14 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "cf:pages:build": "npm run build && node scripts/build-pages-webroot.mjs",
+    "cf:pages:build": "npx @cloudflare/next-on-pages@1 -o .cf-pages-webroot",
     "start": "next start",
     "lint": "next lint",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "supabase:db:push": "supabase db push",
     "supabase:studio": "supabase studio",
-    "deploy:cf": "wrangler pages deploy .next"
+    "deploy:cf": "wrangler pages deploy .cf-pages-webroot"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.5",

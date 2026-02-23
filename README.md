@@ -38,10 +38,10 @@ npm run dev
 
 ```bash
 # Build
-npm run build
+npm run cf:pages:build
 
 # Deploy
-npx wrangler pages deploy .next
+npx wrangler pages deploy .cf-pages-webroot
 ```
 
 ## Lizenz
