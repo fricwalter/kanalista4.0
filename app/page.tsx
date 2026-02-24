@@ -1,8 +1,18 @@
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import GoogleSignInButton from "./google-signin-button";
+import { auth } from "@/lib/auth";
+import { resolveSessionUser } from "@/lib/resolve-auth-user";
 
-export default function Home() {
+export default async function Home() {
+  const session = await auth();
+  const currentUser = await resolveSessionUser(session);
+
+  if (session && currentUser) {
+    redirect("/dashboard");
+  }
+
   return (
     <main className="min-h-screen flex items-center justify-center p-4">
       <div className="glass-card p-10 text-center max-w-md w-full">

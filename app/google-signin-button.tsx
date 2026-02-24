@@ -6,7 +6,7 @@ export default function GoogleSignInButton() {
   return (
     <button
       type="button"
-      onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+      onClick={() => signIn("google", { redirectTo: "/dashboard" })}
       className="glass-button-primary w-full py-3 px-6 rounded-xl flex items-center justify-center gap-3 text-lg"
     >
       <svg viewBox="0 0 24 24" className="w-5 h-5">
