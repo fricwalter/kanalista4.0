@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import GoogleSignInButton from "./google-signin-button";
 import { auth } from "@/lib/auth";
 
+export const runtime = "edge";
+
 export default async function Home() {
   const session = await auth();
 
