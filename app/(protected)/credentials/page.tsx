@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Plus, Trash2, Loader2, CheckCircle, XCircle } from "lucide-react";
 
@@ -14,7 +13,6 @@ interface Credential {
 
 export default function CredentialsPage() {
   const { data: session, status } = useSession();
-  const router = useRouter();
 
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,12 +28,15 @@ export default function CredentialsPage() {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/");
-    } else if (status === "authenticated") {
-      loadCredentials();
+    if (status === "authenticated") {
+      void loadCredentials();
+      return;
     }
-  }, [status, router]);
+
+    if (status === "unauthenticated") {
+      setLoading(false);
+    }
+  }, [status]);
 
   const loadCredentials = async () => {
     try {
@@ -109,6 +110,10 @@ export default function CredentialsPage() {
         <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
       </div>
     );
+  }
+
+  if (status !== "authenticated" || !session) {
+    return null;
   }
 
   return (

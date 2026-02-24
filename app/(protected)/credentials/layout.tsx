@@ -12,11 +12,11 @@ export default async function CredentialsLayout({
   const session = await auth();
   const currentUser = await resolveSessionUser(session);
 
-  if (!currentUser) {
+  if (!session) {
     redirect("/");
   }
 
-  if (!currentUser.isAdmin) {
+  if (!currentUser?.isAdmin) {
     redirect("/dashboard");
   }
 

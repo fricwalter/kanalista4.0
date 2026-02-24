@@ -15,11 +15,12 @@ export default async function ProtectedLayout({
   const session = await auth();
   const currentUser = await resolveSessionUser(session);
 
-  if (!session || !currentUser) {
+  if (!session) {
     redirect("/");
   }
 
-  const showConsentGate = !currentUser.isAdmin && !currentUser.marketingOptIn;
+  const showConsentGate =
+    currentUser !== null && !currentUser.isAdmin && !currentUser.marketingOptIn;
 
   if (showConsentGate) {
     return (
@@ -53,7 +54,7 @@ export default async function ProtectedLayout({
             >
               Dashboard
             </Link>
-            {currentUser.isAdmin && (
+            {currentUser?.isAdmin && (
               <Link
                 href="/credentials"
                 className="glass-button px-4 py-2 rounded-lg text-sm"

@@ -3,13 +3,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import GoogleSignInButton from "./google-signin-button";
 import { auth } from "@/lib/auth";
-import { resolveSessionUser } from "@/lib/resolve-auth-user";
 
 export default async function Home() {
   const session = await auth();
-  const currentUser = await resolveSessionUser(session);
 
-  if (session && currentUser) {
+  if (session) {
     redirect("/dashboard");
   }
 

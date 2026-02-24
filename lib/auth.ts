@@ -19,6 +19,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async signIn({ user, account }) {
       if (!account?.providerAccountId || !user.email) {
+        console.error("Auth signIn blocked: missing Google account id or email", {
+          hasProviderAccountId: Boolean(account?.providerAccountId),
+          hasEmail: Boolean(user.email),
+        });
         return false;
       }
 
@@ -40,8 +44,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           .upsert(baseUser, { onConflict: "google_id" });
 
         if (upsertByGoogleIdError) {
-          console.error("Auth upsert failed:", upsertByGoogleIdError);
-          return false;
+          // Do not block OAuth login when user sync fails due env/DB issues.
+          // Blocking here causes /api/auth/error?error=AccessDenied.
+          console.error("Auth user sync failed (continuing sign-in):", {
+            byEmail: {
+              code: upsertByEmailError.code,
+              message: upsertByEmailError.message,
+              details: upsertByEmailError.details,
+            },
+            byGoogleId: {
+              code: upsertByGoogleIdError.code,
+              message: upsertByGoogleIdError.message,
+              details: upsertByGoogleIdError.details,
+            },
+          });
+          return true;
         }
       }
 
