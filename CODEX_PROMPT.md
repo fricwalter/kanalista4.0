@@ -89,8 +89,8 @@ CREATE POLICY "Users manage own cache" ON channel_cache FOR ALL TO authenticated
 NEXTAUTH_SECRET=<generiere mit: openssl rand -base64 32>
 NEXTAUTH_URL=http://localhost:3000
 
-GOOGLE_CLIENT_ID=<deine-client-id>
-GOOGLE_CLIENT_SECRET=<dein-client-secret>
+GOOGLE_CLIENT_ID=<dein-google-client-id>
+GOOGLE_CLIENT_SECRET=<dein-google-client-secret>
 
 NEXT_PUBLIC_SUPABASE_URL=https://supa.exyuiptv.org
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<dein-anon-key>
@@ -121,7 +121,7 @@ npm run dev
 cd D:\Projekte\Kanalista4.0\kanalista4.0
 git add .
 git commit -m "Initial commit: Kanalista 4.0"
-git remote add origin https://github.com/<dein-github-username>/kanalista4.0.git
+git remote add origin https://github.com/fricwalter/kanalista4.0.git
 git push -u origin main
 ```
 
