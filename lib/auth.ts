@@ -23,11 +23,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signIn({ user, account }) {
       try {
         if (!account?.providerAccountId || !user.email) {
-          console.error("Auth signIn blocked: missing Google account id or email", {
+          console.error("Auth signIn: missing Google account id or email (continuing sign-in)", {
             hasProviderAccountId: Boolean(account?.providerAccountId),
             hasEmail: Boolean(user.email),
           });
-          return false;
+          return true;
         }
 
         const baseUser = {
