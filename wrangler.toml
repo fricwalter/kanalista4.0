@@ -6,3 +6,8 @@ pages_build_output_dir = ".cf-pages-webroot"
 [vars]
 NEXTAUTH_URL = "https://channel.exyuiptv.org"
 NEXT_PUBLIC_SUPABASE_URL = "https://supa.exyuiptv.org"
+
+# Google OAuth - MÜSSEN in Cloudflare Pages Settings gesetzt werden:
+# AUTH_GOOGLE_ID oder GOOGLE_CLIENT_ID
+# AUTH_GOOGLE_SECRET oder GOOGLE_CLIENT_SECRET
+# AUTH_SECRET oder NEXTAUTH_SECRET
