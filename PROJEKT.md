@@ -161,12 +161,14 @@ CREATE POLICY "Users manage own cache" ON channel_cache
 # ===========================================
 # NEXTAUTH AUTHENTICATION
 # ===========================================
+# Alternativen: AUTH_SECRET, NEXTAUTH_SECRET
 NEXTAUTH_SECRET=HIER_EINEN_ZUFALLIGEN_STRING_EINFUEGEN
 NEXTAUTH_URL=http://localhost:3000
 
 # ===========================================
 # GOOGLE OAUTH (Google Cloud Console)
 # ===========================================
+# Alternativen: AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 
@@ -195,12 +197,18 @@ openssl rand -base64 32
 ### wrangler.toml
 
 ```toml
-name = "kanalista4.0"
-compatibility_date = "2024-01-01"
-pages_build_output_dir = ".next"
+name = "kanalista4-0"
+compatibility_date = "2026-02-23"
+compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env"]
+pages_build_output_dir = ".cf-pages-webroot"
 
 [vars]
-NEXTAUTH_URL = "https://kanalista4.0.pages.dev"
+NEXTAUTH_URL = "https://channel.exyuiptv.org"
+NEXT_PUBLIC_SUPABASE_URL = "https://supa.exyuiptv.org"
+
+# Google OAuth Credentials (direkt in wrangler.toml für zuverlässige Inject)
+AUTH_GOOGLE_ID = "deine-client-id.apps.googleusercontent.com"
+AUTH_SECRET = "dein-auth-secret"
 ```
 
 ### Cloudflare Pages Deploy
@@ -213,6 +221,70 @@ npx wrangler pages deploy .next
 # 1. GitHub Repo verbinden
 # 2. Build Command: npm run build
 # 3. Build Output: .next
+```
+
+---
+
+## 🔧 Google OAuth Konfiguration (WICHTIG)
+
+### Das Problem
+
+Bei der ersten Einrichtung von Google OAuth kann der Fehler auftreten:
+```
+The OAuth client was not found.
+Error 401: invalid_client
+```
+
+Dies liegt daran, dass die Google OAuth Credentials nicht korrekt an die Cloudflare Pages Anwendung übergeben werden.
+
+### Die Lösung
+
+Die Google OAuth Credentials werden **direkt in wrangler.toml** als `[vars]` definiert:
+
+```toml
+[vars]
+NEXTAUTH_URL = "https://channel.exyuiptv.org"
+NEXT_PUBLIC_SUPABASE_URL = "https://supa.exyuiptv.org"
+AUTH_GOOGLE_ID = "deine-client-id.apps.googleusercontent.com"
+AUTH_SECRET = "dein-generierter-secret"
+```
+
+### Alternative: Cloudflare Pages Secrets
+
+Man kann die Credentials auch als Secrets in Cloudflare Pages setzen:
+
+```bash
+# AUTH_GOOGLE_ID setzen
+npx wrangler pages secret put AUTH_GOOGLE_ID --project kanalista4-0-git
+
+# AUTH_GOOGLE_SECRET setzen
+npx wrangler pages secret put AUTH_GOOGLE_SECRET --project kanalista4-0-git
+
+# AUTH_SECRET setzen
+npx wrangler pages secret put AUTH_SECRET --project kanalista4-0-git
+```
+
+**WICHTIG:** Nach dem Ändern von Secrets muss ein **neues Deployment** getriggert werden (z.B. durch einen leeren Git Commit).
+
+### Google Cloud Console Setup
+
+1. **OAuth Client erstellen:**
+   - https://console.cloud.google.com/apis/credentials
+   - "OAuth 2.0 Client IDs" -> "Client erstellen"
+
+2. **Authorized Redirect URIs:**
+   - `https://channel.exyuiptv.org/api/auth/callback/google`
+   - `https://kanalista4-0-git.pages.dev/api/auth/callback/google`
+
+3. **OAuth Consent Screen:**
+   - App veröffentlichen ODER
+   - Test-User hinzufügen (admirfric@gmail.com)
+
+### Credentials generieren
+
+```bash
+# AUTH_SECRET generieren (32 Bytes)
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
 ---
