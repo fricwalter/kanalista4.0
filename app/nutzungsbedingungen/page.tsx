@@ -15,16 +15,16 @@ export default function NutzungsbedingungenPage() {
         <section className="space-y-2">
           <h2 className="text-xl font-semibold text-white">1. Leistungsbeschreibung</h2>
           <p>
-            Kanalista 4.0 ist ein technisches Browser- und Verwaltungswerkzeug fuer
-            IPTV-Datenquellen, die vom Nutzer selbst bereitgestellt werden.
+            Kanalista 4.0 ist eine oeffentliche Uebersicht fuer Live-Kanaele, Filme und
+            Serien auf Basis gespeicherter Metadaten.
           </p>
         </section>
 
         <section className="space-y-2">
           <h2 className="text-xl font-semibold text-white">2. Verantwortlichkeit der Nutzer</h2>
           <p>
-            Nutzer sind selbst dafuer verantwortlich, dass die genutzten Inhalte und
-            Zugangsdaten rechtmaessig sind und keine Rechte Dritter verletzen.
+            Betreiber und Administratoren sind dafuer verantwortlich, dass importierte
+            Inhalte und Datenquellen rechtmaessig verwendet werden.
           </p>
         </section>
 
@@ -51,7 +51,7 @@ export default function NutzungsbedingungenPage() {
           </p>
         </section>
 
-        <p className="text-sm text-gray-400">Stand: 23. Februar 2026</p>
+        <p className="text-sm text-gray-400">Stand: 2. Maerz 2026</p>
       </article>
     </main>
   );

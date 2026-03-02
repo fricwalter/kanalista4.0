@@ -24,18 +24,17 @@ export default function DatenschutzPage() {
           <h2 className="text-xl font-semibold text-white">2. Verarbeitete Daten</h2>
           <p>Bei der Nutzung koennen insbesondere folgende Daten verarbeitet werden:</p>
           <ul className="list-disc pl-5 space-y-1">
-            <li>Google-Profilinformationen (E-Mail, Name, Avatar)</li>
-            <li>Login- und Sitzungsdaten</li>
             <li>Technische Protokolldaten (z.B. IP, Zeitstempel, Fehlerdaten)</li>
-            <li>Von dir hinterlegte IPTV-Konfigurationsdaten</li>
+            <li>Oeffentlich bereitgestellte Kanal-Metadaten (z.B. Name, Kategorie, Poster)</li>
+            <li>Lokal gespeicherte Cache-Daten im Browser (localStorage, bis zu 7 Tage)</li>
           </ul>
         </section>
 
         <section className="space-y-2">
           <h2 className="text-xl font-semibold text-white">3. Zweck der Verarbeitung</h2>
           <p>
-            Die Verarbeitung erfolgt zur Bereitstellung der App, zur Authentifizierung,
-            zur Speicherung deiner Einstellungen und zur technischen Sicherheit.
+            Die Verarbeitung erfolgt zur Bereitstellung der oeffentlichen Uebersicht,
+            zur schnelleren Auslieferung durch Caching und zur technischen Sicherheit.
           </p>
         </section>
 
@@ -55,7 +54,7 @@ export default function DatenschutzPage() {
           </p>
         </section>
 
-        <p className="text-sm text-gray-400">Stand: 23. Februar 2026</p>
+        <p className="text-sm text-gray-400">Stand: 2. Maerz 2026</p>
       </article>
     </main>
   );
