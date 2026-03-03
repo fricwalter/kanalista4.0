@@ -6,6 +6,7 @@ pages_build_output_dir = ".cf-pages-webroot"
 [vars]
 NEXTAUTH_URL = "https://channel.exyuiptv.org"
 NEXT_PUBLIC_SUPABASE_URL = "https://supa.exyuiptv.org"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc3MTcyMjk2MCwiZXhwIjo0OTI3Mzk2NTYwLCJyb2xlIjoiYW5vbiJ9.n63ftYzomJtq-FdgC-yCZRbdy_Ek-rKbxptO0F9IXm8"
 
 # Google OAuth Credentials - direkt in wrangler.toml für zuverlässige Inject
 # Alternativ können diese auch als Cloudflare Pages Secrets gesetzt werden
