@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const runtime = "edge";
+
 export async function POST(req: Request) {
   const auth = req.headers.get("Authorization");
   if (auth !== `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`) {
