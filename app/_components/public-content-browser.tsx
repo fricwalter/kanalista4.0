@@ -58,6 +58,49 @@ function getRating(item: PublicContentItem): string {
   return "";
 }
 
+const EXYU_MARKERS = [
+  "exyu",
+  "ex yu",
+  "balkan",
+  "bosna",
+  "bosnia",
+  "bih",
+  "hrvats",
+  "croat",
+  "srb",
+  "serb",
+  "sloven",
+  "makedon",
+  "macedon",
+  "crna gora",
+  "montenegro",
+  "kosov",
+];
+
+const GERMAN_MARKERS = ["deutsch", "german", "njemack", "njemačk", "dach"];
+
+function normalizeRegionText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[_|:[\](){}-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getRegionPriority(value: string): number {
+  const normalized = normalizeRegionText(value);
+  if (EXYU_MARKERS.some((marker) => normalized.includes(marker))) return 0;
+  if (
+    GERMAN_MARKERS.some((marker) => normalized.includes(marker)) ||
+    /(^|\s)(de|ger)(\s|$)/.test(normalized)
+  ) {
+    return 1;
+  }
+  return 2;
+}
+
 export default function PublicContentBrowser({
   kind,
   title,
@@ -95,13 +138,24 @@ export default function PublicContentBrowser({
     return map;
   }, [categories]);
 
+  const orderedCategories = useMemo(() => {
+    if (kind !== "live") return categories;
+    return categories
+      .map((category, index) => ({ category, index }))
+      .sort((a, b) => {
+        const priorityDifference =
+          getRegionPriority(a.category.category_name) - getRegionPriority(b.category.category_name);
+        return priorityDifference || a.index - b.index;
+      })
+      .map(({ category }) => category);
+  }, [categories, kind]);
+
   const filteredItems = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return items.filter((item) => {
+    const matchingItems = items.filter((item) => {
       const itemCategoryId = getCategoryId(item);
       const categoryName = categoryMap.get(itemCategoryId) || "";
-      const matchesCategory =
-        activeCategory === "alle" || itemCategoryId === activeCategory;
+      const matchesCategory = activeCategory === "alle" || itemCategoryId === activeCategory;
       const matchesSearch =
         q.length === 0 ||
         getDisplayName(item).toLowerCase().includes(q) ||
@@ -109,7 +163,20 @@ export default function PublicContentBrowser({
         getGenre(item).toLowerCase().includes(q);
       return matchesCategory && matchesSearch;
     });
-  }, [activeCategory, categoryMap, items, search]);
+
+    if (kind !== "live") return matchingItems;
+
+    return matchingItems
+      .map((item, index) => ({ item, index }))
+      .sort((a, b) => {
+        const aCategory = categoryMap.get(getCategoryId(a.item)) || "";
+        const bCategory = categoryMap.get(getCategoryId(b.item)) || "";
+        const aPriority = getRegionPriority(`${aCategory} ${getDisplayName(a.item)}`);
+        const bPriority = getRegionPriority(`${bCategory} ${getDisplayName(b.item)}`);
+        return aPriority - bPriority || a.index - b.index;
+      })
+      .map(({ item }) => item);
+  }, [activeCategory, categoryMap, items, kind, search]);
 
   return (
     <main className="min-h-screen p-4 md:p-8">
@@ -167,7 +234,7 @@ export default function PublicContentBrowser({
             >
               Alle Kategorien
             </button>
-            {categories.map((category) => {
+            {orderedCategories.map((category) => {
               const id = String(category.category_id);
               const selected = activeCategory === id;
               return (
@@ -237,4 +304,3 @@ export default function PublicContentBrowser({
     </main>
   );
 }
-

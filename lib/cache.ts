@@ -1,4 +1,4 @@
-const CACHE_VERSION = "2.0";
+const CACHE_VERSION = "2.1";
 const TTL = 7 * 24 * 60 * 60 * 1000; // 7 Tage
 
 export function getCached<T>(key: string): T | null {
@@ -43,4 +43,3 @@ export function clearCache(): void {
     (k) => localStorage.removeItem(`kanalista_${k}`)
   );
 }
-
