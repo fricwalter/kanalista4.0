@@ -161,6 +161,43 @@ a {
   gap: 0.2rem;
 }
 
+.site-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.language-switch {
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 0.2rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--shadow-sm);
+}
+
+.language-switch button {
+  min-width: 2.35rem;
+  min-height: 34px;
+  padding: 0.25rem 0.45rem;
+  border: 0;
+  border-radius: 0.55rem;
+  color: var(--color-faint);
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  transition: color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.language-switch button[aria-pressed="true"] {
+  color: #fff;
+  background: var(--color-accent);
+  box-shadow: 0 5px 12px rgba(255, 122, 43, 0.24);
+}
+
 .desktop-nav a {
   display: inline-flex;
   min-height: 42px;
@@ -797,6 +834,8 @@ a {
   .brand__word { font-size: 1.35rem; }
   .brand__tv { min-width: 1.95rem; height: 1.6rem; font-size: 0.8rem; }
   .brand__product { font-size: 0.7rem; }
+  .site-header__actions { gap: 0; }
+  .language-switch button { min-width: 2.15rem; min-height: 32px; padding-inline: 0.35rem; }
 
   .catalog-page {
     min-height: calc(100vh - 56px);
@@ -886,6 +925,10 @@ a {
 
   .glass-card,
   .glass-card-hover { border-radius: 1rem; }
+}
+
+@media (max-width: 23rem) {
+  .brand__product { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

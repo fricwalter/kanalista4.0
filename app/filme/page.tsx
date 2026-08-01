@@ -12,8 +12,7 @@ export default async function FilmePage() {
   return (
     <PublicContentBrowser
       kind="vod"
-      title="Filme"
-      description={`Öffentliche Übersicht mit ${channelCount.toLocaleString("de-DE")} Filmen.`}
+      channelCount={channelCount}
       initialCategories={categories}
     />
   );

@@ -3,13 +3,13 @@
 /* eslint-disable @next/next/no-img-element */
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useLanguage } from "@/app/_components/language-context";
 import { getCached, setCache } from "@/lib/cache";
 import type { CacheCategory, PublicCategory, PublicContentItem } from "@/types/public-content";
 
 type BrowserProps = {
   kind: CacheCategory;
-  title: string;
-  description: string;
+  channelCount: number;
   initialCategories: PublicCategory[];
 };
 
@@ -31,8 +31,7 @@ function getDisplayName(item: PublicContentItem): string {
     safeText(item.name) ||
     safeText(item.title) ||
     safeText(item.series_name) ||
-    safeText(item.stream_name) ||
-    "Unbekannter Titel"
+    safeText(item.stream_name)
   );
 }
 
@@ -130,10 +129,10 @@ function getRegionPriority(value: string): number {
 
 export default function PublicContentBrowser({
   kind,
-  title,
-  description,
+  channelCount,
   initialCategories,
 }: BrowserProps) {
+  const { copy, locale } = useLanguage();
   const keys = CACHE_KEYS[kind];
   const [items, setItems] = useState<PublicContentItem[]>([]);
   const [categories, setCategories] = useState<PublicCategory[]>(initialCategories);
@@ -240,6 +239,10 @@ export default function PublicContentBrowser({
     [filteredItems, visibleCount]
   );
 
+  const title = kind === "live" ? copy.catalog.liveTitle : kind === "vod" ? copy.catalog.moviesTitle : copy.catalog.seriesTitle;
+  const unit = kind === "live" ? copy.catalog.liveUnit : kind === "vod" ? copy.catalog.moviesUnit : copy.catalog.seriesUnit;
+  const description = `${copy.catalog.publicOverview}: ${channelCount.toLocaleString(locale)} ${unit}.`;
+
   return (
     <main className="catalog-page">
       <div className="catalog-shell">
@@ -250,28 +253,28 @@ export default function PublicContentBrowser({
             <p>{description}</p>
           </div>
           <span className="catalog-total" aria-live="polite">
-            {loading ? "Lädt …" : `${filteredItems.length.toLocaleString("de-DE")} Treffer`}
+            {loading ? copy.catalog.loading : `${filteredItems.length.toLocaleString(locale)} ${copy.catalog.results}`}
           </span>
         </header>
 
-        <section className="catalog-controls" aria-label="Kanäle filtern">
+        <section className="catalog-controls" aria-label={copy.catalog.filterChannels}>
           <label className="catalog-search">
             <Search aria-hidden="true" size={19} strokeWidth={2.2} />
-            <span className="sr-only">Suchen</span>
+            <span className="sr-only">{copy.catalog.search}</span>
             <input
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Kanal, Film oder Serie suchen"
+              placeholder={copy.catalog.searchPlaceholder}
             />
           </label>
 
           <div className="catalog-filter-row">
             {kind === "live" && (
-              <div className="region-switch" aria-label="Region auswählen">
+              <div className="region-switch" aria-label={copy.catalog.chooseRegion}>
                 {(
                   [
-                    ["all", "Alle"],
+                    ["all", copy.catalog.all],
                     ["exyu", "EXYU"],
                     ["de", "DE"],
                   ] as const
@@ -292,7 +295,7 @@ export default function PublicContentBrowser({
             )}
 
             <label className="category-select">
-              <span>Kategorie</span>
+              <span>{copy.catalog.category}</span>
               <select
                 value={activeCategory}
                 onChange={(event) => {
@@ -300,7 +303,7 @@ export default function PublicContentBrowser({
                   setRegionFilter("all");
                 }}
               >
-                <option value="alle">Alle Kategorien</option>
+                <option value="alle">{copy.catalog.allCategories}</option>
                 {orderedCategories.map((category) => (
                   <option key={String(category.category_id)} value={String(category.category_id)}>
                     {category.category_name}
@@ -313,8 +316,8 @@ export default function PublicContentBrowser({
 
         <section className="channel-grid" aria-busy={loading}>
           {visibleItems.map((item, index) => {
-            const name = getDisplayName(item);
-            const categoryName = categoryMap.get(getCategoryId(item)) || "Ohne Kategorie";
+            const name = getDisplayName(item) || copy.catalog.unknownTitle;
+            const categoryName = categoryMap.get(getCategoryId(item)) || copy.catalog.withoutCategory;
             const genre = getGenre(item);
             const rating = getRating(item);
             const image = getImage(item, kind);
@@ -348,18 +351,18 @@ export default function PublicContentBrowser({
               onClick={() => setVisibleCount((current) => current + PAGE_SIZE)}
               className="primary-button"
             >
-              Weitere {Math.min(PAGE_SIZE, filteredItems.length - visibleItems.length)} anzeigen
+              {copy.catalog.showMore} {Math.min(PAGE_SIZE, filteredItems.length - visibleItems.length)} {copy.catalog.showMoreSuffix}
             </button>
           </div>
         )}
 
         {loadError && (
-          <div className="catalog-message catalog-message--error">{loadError}</div>
+          <div className="catalog-message catalog-message--error">{copy.catalog.loadError}</div>
         )}
 
         {!loading && !loadError && filteredItems.length === 0 && (
           <div className="catalog-message">
-            Keine Einträge für die aktuelle Auswahl gefunden.
+            {copy.catalog.empty}
           </div>
         )}
       </div>

@@ -12,8 +12,7 @@ export default async function LivePage() {
   return (
     <PublicContentBrowser
       kind="live"
-      title="Live-Kanäle"
-      description={`Öffentliche Übersicht mit ${channelCount.toLocaleString("de-DE")} Live-Kanälen.`}
+      channelCount={channelCount}
       initialCategories={categories}
     />
   );

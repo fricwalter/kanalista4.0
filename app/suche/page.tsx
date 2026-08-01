@@ -3,6 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useLanguage } from "@/app/_components/language-context";
 import { getCached, setCache } from "@/lib/cache";
 import type { CacheCategory, PublicCategory, PublicContentItem } from "@/types/public-content";
 
@@ -21,15 +22,12 @@ const CACHE_KEYS = {
   series: { items: "series", categories: "series_cats" },
 } as const;
 
-const KIND_LABEL: Record<CacheCategory, string> = { live: "Live", vod: "Filme", series: "Serien" };
-
 function safeText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
 function getName(item: PublicContentItem): string {
-  return safeText(item.name) || safeText(item.title) || safeText(item.series_name) ||
-    safeText(item.stream_name) || "Unbekannter Titel";
+  return safeText(item.name) || safeText(item.title) || safeText(item.series_name) || safeText(item.stream_name);
 }
 
 function getCategoryId(item: PublicContentItem): string {
@@ -70,6 +68,7 @@ async function fetchCategories(kind: CacheCategory): Promise<PublicCategory[]> {
 }
 
 export default function SuchePage() {
+  const { copy, locale } = useLanguage();
   const [itemsByKind, setItemsByKind] = useState<Record<CacheCategory, PublicContentItem[]>>({ live: [], vod: [], series: [] });
   const [categoriesByKind, setCategoriesByKind] = useState<Record<CacheCategory, PublicCategory[]>>({ live: [], vod: [], series: [] });
   const [search, setSearch] = useState("");
@@ -102,22 +101,22 @@ export default function SuchePage() {
   }, []);
 
   const groupedResults = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase("de");
+    const query = search.trim().toLocaleLowerCase(locale);
     const groups: Record<CacheCategory, SearchEntry[]> = { live: [], vod: [], series: [] };
     (["live", "vod", "series"] as CacheCategory[]).forEach((kind) => {
       const categoryMap = new Map(categoriesByKind[kind].map((category) => [String(category.category_id), category.category_name]));
       groups[kind] = itemsByKind[kind].map((item) => ({
         kind,
-        name: getName(item),
-        categoryName: categoryMap.get(getCategoryId(item)) || "Ohne Kategorie",
+        name: getName(item) || copy.catalog.unknownTitle,
+        categoryName: categoryMap.get(getCategoryId(item)) || copy.catalog.withoutCategory,
         genre: safeText(item.genre),
         rating: typeof item.rating === "number" ? item.rating.toFixed(1) : safeText(item.rating),
         image: getImage(item),
       })).filter((entry) => query.length >= 2 && [entry.name, entry.categoryName, entry.genre]
-        .some((value) => value.toLocaleLowerCase("de").includes(query))).slice(0, 120);
+        .some((value) => value.toLocaleLowerCase(locale).includes(query))).slice(0, 120);
     });
     return groups;
-  }, [categoriesByKind, itemsByKind, search]);
+  }, [categoriesByKind, copy.catalog.unknownTitle, copy.catalog.withoutCategory, itemsByKind, locale, search]);
 
   const total = groupedResults.live.length + groupedResults.vod.length + groupedResults.series.length;
   const hasQuery = search.trim().length >= 2;
@@ -126,38 +125,38 @@ export default function SuchePage() {
     <main className="catalog-page">
       <div className="catalog-shell">
         <section className="catalog-intro">
-          <div><p className="catalog-eyebrow">Kanalista 4.0</p><h1>Alles durchsuchen</h1></div>
-          <span className="catalog-total">{loading ? "Lädt …" : `${total} Treffer`}</span>
+          <div><p className="catalog-eyebrow">Kanalista 4.0</p><h1>{copy.globalSearch.title}</h1></div>
+          <span className="catalog-total">{loading ? copy.catalog.loading : `${total.toLocaleString(locale)} ${copy.catalog.results}`}</span>
         </section>
 
         <section className="catalog-controls search-page-controls">
           <label className="catalog-search">
             <Search size={19} aria-hidden="true" />
             <input autoFocus type="search" value={search} onChange={(event) => setSearch(event.target.value)}
-              placeholder="Sender, Film, Serie oder Genre …" />
+              placeholder={copy.globalSearch.placeholder} />
           </label>
-          <p className="search-hint">{hasQuery ? "Bis zu 120 Treffer je Bereich" : "Mindestens zwei Zeichen eingeben"}</p>
+          <p className="search-hint">{hasQuery ? copy.globalSearch.maxResults : copy.globalSearch.minChars}</p>
         </section>
 
         {hasQuery && (["live", "vod", "series"] as CacheCategory[]).map((kind) => (
           <section key={kind} className="search-results-section">
-            <div className="results-heading"><h2>{KIND_LABEL[kind]}</h2><span>{groupedResults[kind].length}</span></div>
+            <div className="results-heading"><h2>{kind === "live" ? copy.nav.live : kind === "vod" ? copy.nav.movies : copy.nav.series}</h2><span>{groupedResults[kind].length}</span></div>
             <div className="channel-grid">
               {groupedResults[kind].map((entry, index) => (
                 <article key={`${entry.kind}-${entry.name}-${index}`} className="channel-card">
                   <div className="channel-card__media">
-                    {entry.image ? <img src={entry.image} alt="" loading="lazy" /> : <span>{KIND_LABEL[kind].slice(0, 1)}</span>}
+                    {entry.image ? <img src={entry.image} alt="" loading="lazy" /> : <span>{kind === "series" ? "S" : kind === "vod" ? "F" : "TV"}</span>}
                   </div>
                   <div className="channel-card__body">
                     <h2>{entry.name}</h2>
                     <p className="channel-card__category">{entry.categoryName}</p>
                     {entry.genre && <p className="channel-card__meta">{entry.genre}</p>}
-                    {kind === "series" && entry.rating && <p className="channel-card__rating">Bewertung {entry.rating}</p>}
+                    {kind === "series" && entry.rating && <p className="channel-card__rating">{copy.catalog.rating} {entry.rating}</p>}
                   </div>
                 </article>
               ))}
             </div>
-            {!loading && groupedResults[kind].length === 0 && <p className="catalog-message">Keine Treffer.</p>}
+            {!loading && groupedResults[kind].length === 0 && <p className="catalog-message">{copy.globalSearch.noResults}</p>}
           </section>
         ))}
       </div>

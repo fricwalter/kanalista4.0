@@ -12,8 +12,7 @@ export default async function SerienPage() {
   return (
     <PublicContentBrowser
       kind="series"
-      title="Serien"
-      description={`Öffentliche Übersicht mit ${channelCount.toLocaleString("de-DE")} Serien.`}
+      channelCount={channelCount}
       initialCategories={categories}
     />
   );
