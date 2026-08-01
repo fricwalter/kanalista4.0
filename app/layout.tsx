@@ -6,6 +6,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Kanalista 4.0 – IPTV pregled kanala",
   description: "Svi dostupni live kanali, filmovi i serije na jednom mjestu",
+  robots: "noindex, nofollow, noarchive, nosnippet, noimageindex",
   icons: {
     icon: "/favicon.svg",
   },

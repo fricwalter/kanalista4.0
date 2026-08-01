@@ -24,6 +24,10 @@ const nextConfig = {
         source: '/(.*)',
         headers: [
           {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow, noarchive, nosnippet, noimageindex',
+          },
+          {
             key: 'Access-Control-Allow-Credentials',
             value: 'true',
           },
