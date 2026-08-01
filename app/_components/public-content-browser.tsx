@@ -132,7 +132,7 @@ export default function PublicContentBrowser({
   channelCount,
   initialCategories,
 }: BrowserProps) {
-  const { copy, locale } = useLanguage();
+  const { copy } = useLanguage();
   const keys = CACHE_KEYS[kind];
   const [items, setItems] = useState<PublicContentItem[]>([]);
   const [categories, setCategories] = useState<PublicCategory[]>(initialCategories);
@@ -241,7 +241,7 @@ export default function PublicContentBrowser({
 
   const title = kind === "live" ? copy.catalog.liveTitle : kind === "vod" ? copy.catalog.moviesTitle : copy.catalog.seriesTitle;
   const unit = kind === "live" ? copy.catalog.liveUnit : kind === "vod" ? copy.catalog.moviesUnit : copy.catalog.seriesUnit;
-  const description = `${copy.catalog.publicOverview}: ${channelCount.toLocaleString(locale)} ${unit}.`;
+  const description = `${copy.catalog.publicOverview}: ${channelCount.toLocaleString("de-DE")} ${unit}.`;
 
   return (
     <main className="catalog-page">
@@ -253,7 +253,7 @@ export default function PublicContentBrowser({
             <p>{description}</p>
           </div>
           <span className="catalog-total" aria-live="polite">
-            {loading ? copy.catalog.loading : `${filteredItems.length.toLocaleString(locale)} ${copy.catalog.results}`}
+            {loading ? copy.catalog.loading : `${filteredItems.length.toLocaleString("de-DE")} ${copy.catalog.results}`}
           </span>
         </header>
 

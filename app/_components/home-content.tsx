@@ -5,7 +5,7 @@ import { ArrowRight, Clapperboard, Film, Search, Tv } from "lucide-react";
 import { useLanguage } from "@/app/_components/language-context";
 
 export default function HomeContent({ live, vod, series }: { live: number; vod: number; series: number }) {
-  const { copy, locale } = useLanguage();
+  const { copy } = useLanguage();
   const areas = [
     { href: "/live", label: copy.home.live, count: live, icon: Tv, note: copy.home.liveNote },
     { href: "/filme", label: copy.home.movies, count: vod, icon: Film, note: copy.home.moviesNote },
@@ -31,7 +31,7 @@ export default function HomeContent({ live, vod, series }: { live: number; vod: 
           {areas.map(({ href, label, count, icon: Icon, note }) => (
             <Link key={href} href={href} className="catalog-link">
               <span className="catalog-link__icon"><Icon size={22} aria-hidden="true" /></span>
-              <strong className="catalog-link__count">{count.toLocaleString(locale)}</strong>
+              <strong className="catalog-link__count">{count.toLocaleString("de-DE")}</strong>
               <span className="catalog-link__label"><span>{label}<small>{note}</small></span><ArrowRight size={20} aria-hidden="true" /></span>
             </Link>
           ))}

@@ -126,7 +126,7 @@ export default function SuchePage() {
       <div className="catalog-shell">
         <section className="catalog-intro">
           <div><p className="catalog-eyebrow">Kanalista 4.0</p><h1>{copy.globalSearch.title}</h1></div>
-          <span className="catalog-total">{loading ? copy.catalog.loading : `${total.toLocaleString(locale)} ${copy.catalog.results}`}</span>
+          <span className="catalog-total">{loading ? copy.catalog.loading : `${total.toLocaleString("de-DE")} ${copy.catalog.results}`}</span>
         </section>
 
         <section className="catalog-controls search-page-controls">
