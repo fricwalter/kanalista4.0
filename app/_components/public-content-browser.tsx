@@ -43,10 +43,12 @@ function getCategoryId(item: PublicContentItem): string {
 }
 
 function getImage(item: PublicContentItem, kind: CacheCategory): string {
-  if (kind === "series") {
-    return safeText(item.cover) || safeText(item.stream_icon) || "";
-  }
-  return safeText(item.stream_icon) || safeText(item.thumbnail) || safeText(item.cover) || "";
+  const image =
+    kind === "series"
+      ? safeText(item.cover) || safeText(item.stream_icon)
+      : safeText(item.stream_icon) || safeText(item.thumbnail) || safeText(item.cover);
+  if (image.startsWith("//")) return `https:${image}`;
+  return image.startsWith("https://") || image.startsWith("data:image/") ? image : "";
 }
 
 function getGenre(item: PublicContentItem): string {
