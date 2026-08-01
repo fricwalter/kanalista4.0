@@ -1,18 +1,19 @@
 import PublicContentBrowser from "@/app/_components/public-content-browser";
-import { getPublicCategories, getPublicChannelCount } from "@/lib/public-supabase";
+import { getPublicCategories, getPublicChannelMeta } from "@/lib/public-supabase";
 
 export const revalidate = 604800;
 
 export default async function LivePage() {
-  const [channelCount, categories] = await Promise.all([
-    getPublicChannelCount("live"),
+  const [meta, categories] = await Promise.all([
+    getPublicChannelMeta("live"),
     getPublicCategories("live"),
   ]);
 
   return (
     <PublicContentBrowser
       kind="live"
-      channelCount={channelCount}
+      channelCount={meta.channelCount}
+      lastUpdated={meta.fetchedAt}
       initialCategories={categories}
     />
   );

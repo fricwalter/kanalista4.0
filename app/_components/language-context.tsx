@@ -49,6 +49,7 @@ const COPY = {
       loadError: "Podaci se trenutno ne mogu učitati.",
       empty: "Nema sadržaja za izabrane filtere.",
       rating: "Ocjena",
+      lastUpdated: "Ažurirano",
     },
     globalSearch: {
       title: "Pretraži sve",
@@ -102,6 +103,7 @@ const COPY = {
       loadError: "Daten konnten nicht geladen werden.",
       empty: "Keine Einträge für die aktuelle Auswahl gefunden.",
       rating: "Bewertung",
+      lastUpdated: "Zuletzt aktualisiert",
     },
     globalSearch: {
       title: "Alles durchsuchen",

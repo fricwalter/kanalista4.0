@@ -1,16 +1,20 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import { Search } from "lucide-react";
+import { ChevronRight, Search } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import BackToTop from "@/app/_components/back-to-top";
 import { useLanguage } from "@/app/_components/language-context";
 import { getCached, setCache } from "@/lib/cache";
 import { getChannelImageUrl } from "@/lib/channel-image";
+import { buildMediaDetail, storeMediaPreview } from "@/lib/media-detail";
 import type { CacheCategory, PublicCategory, PublicContentItem } from "@/types/public-content";
 
 type BrowserProps = {
   kind: CacheCategory;
   channelCount: number;
+  lastUpdated: string;
   initialCategories: PublicCategory[];
 };
 
@@ -130,9 +134,10 @@ function getRegionPriority(value: string): number {
 export default function PublicContentBrowser({
   kind,
   channelCount,
+  lastUpdated,
   initialCategories,
 }: BrowserProps) {
-  const { copy } = useLanguage();
+  const { copy, locale } = useLanguage();
   const keys = CACHE_KEYS[kind];
   const [items, setItems] = useState<PublicContentItem[]>([]);
   const [categories, setCategories] = useState<PublicCategory[]>(initialCategories);
@@ -242,6 +247,13 @@ export default function PublicContentBrowser({
   const title = kind === "live" ? copy.catalog.liveTitle : kind === "vod" ? copy.catalog.moviesTitle : copy.catalog.seriesTitle;
   const unit = kind === "live" ? copy.catalog.liveUnit : kind === "vod" ? copy.catalog.moviesUnit : copy.catalog.seriesUnit;
   const description = `${copy.catalog.publicOverview}: ${channelCount.toLocaleString("de-DE")} ${unit}.`;
+  const updatedAt = lastUpdated
+    ? new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "Europe/Berlin",
+      }).format(new Date(lastUpdated))
+    : "";
 
   return (
     <main className="catalog-page">
@@ -251,6 +263,7 @@ export default function PublicContentBrowser({
             <p className="catalog-eyebrow">Kanalista 4.0</p>
             <h1>{title}</h1>
             <p>{description}</p>
+            {updatedAt && <p className="catalog-updated">{copy.catalog.lastUpdated}: {updatedAt}</p>}
           </div>
           <span
             className={`catalog-total${loading ? " catalog-total--loading" : ""}`}
@@ -326,9 +339,8 @@ export default function PublicContentBrowser({
             const genre = getGenre(item);
             const rating = getRating(item);
             const image = getImage(item, kind);
-
-            return (
-              <article key={`${name}-${index}`} className="channel-card">
+            const content = (
+              <>
                 <div className="channel-card__media">
                   {image ? (
                     <img src={image} alt="" loading="lazy" />
@@ -344,6 +356,26 @@ export default function PublicContentBrowser({
                     <p className="channel-card__rating">★ {rating}</p>
                   )}
                 </div>
+              </>
+            );
+
+            if (kind === "live") {
+              return <article key={`${name}-${index}`} className="channel-card">{content}</article>;
+            }
+
+            const detail = buildMediaDetail(kind, item, categoryName, image);
+
+            return (
+              <article key={`${name}-${index}`} className="channel-card channel-card--linked">
+                <Link
+                  href={detail.href}
+                  className="channel-card__link"
+                  aria-label={`${name} – Details`}
+                  onClick={() => storeMediaPreview(detail.storageKey, detail.preview)}
+                >
+                  {content}
+                  <ChevronRight className="channel-card__chevron" aria-hidden="true" size={17} strokeWidth={2.4} />
+                </Link>
               </article>
             );
           })}
@@ -371,6 +403,7 @@ export default function PublicContentBrowser({
           </div>
         )}
       </div>
+      <BackToTop />
     </main>
   );
 }

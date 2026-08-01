@@ -4,6 +4,12 @@ export const WEEK_REVALIDATE_SECONDS = 604800;
 
 type ChannelCacheResponse = {
   channel_count: number | null;
+  fetched_at: string | null;
+};
+
+export type PublicChannelMeta = {
+  channelCount: number;
+  fetchedAt: string;
 };
 
 type CategoriesCacheResponse = {
@@ -43,6 +49,10 @@ async function fetchPublicRows<T>(path: string): Promise<T[]> {
 }
 
 export async function getPublicChannelCount(category: CacheCategory): Promise<number> {
+  return (await getPublicChannelMeta(category)).channelCount;
+}
+
+export async function getPublicChannelMeta(category: CacheCategory): Promise<PublicChannelMeta> {
   const query = new URLSearchParams({
     select: "channel_count,fetched_at",
     category: `eq.${category}`,
@@ -51,7 +61,10 @@ export async function getPublicChannelCount(category: CacheCategory): Promise<nu
   });
 
   const rows = await fetchPublicRows<ChannelCacheResponse>(`channel_cache?${query.toString()}`);
-  return typeof rows[0]?.channel_count === "number" ? rows[0].channel_count : 0;
+  return {
+    channelCount: typeof rows[0]?.channel_count === "number" ? rows[0].channel_count : 0,
+    fetchedAt: typeof rows[0]?.fetched_at === "string" ? rows[0].fetched_at : "",
+  };
 }
 
 export async function getPublicCategories(type: CacheCategory): Promise<PublicCategory[]> {
