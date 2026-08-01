@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Clapperboard, Film, Home, Search, Tv } from "lucide-react";
+import { Clapperboard, Film, Home, MessageCircle, Search, Tv } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/app/_components/language-context";
 
 function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === href : pathname.startsWith(href);
 }
+
+const WHATSAPP_URL = "https://wa.me/4915251741280?text=Komme%20aus%20der%20Kanalliste";
 
 export default function AppNavigation() {
   const pathname = usePathname();
@@ -53,7 +55,7 @@ export default function AppNavigation() {
       </header>
 
       <nav className="mobile-tabbar" aria-label={copy.mobileNavigation}>
-        {navigation.map(({ href, label, icon: Icon }) => {
+        {navigation.slice(0, 4).map(({ href, label, icon: Icon }) => {
           const active = isActive(pathname, href);
           return (
             <Link key={href} href={href} aria-current={active ? "page" : undefined}>
@@ -62,6 +64,16 @@ export default function AppNavigation() {
             </Link>
           );
         })}
+        <a
+          className="mobile-tabbar__whatsapp"
+          href={WHATSAPP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="WhatsApp: Komme aus der Kanalliste"
+        >
+          <MessageCircle aria-hidden="true" size={20} strokeWidth={2.2} />
+          <span>WhatsApp</span>
+        </a>
       </nav>
     </>
   );

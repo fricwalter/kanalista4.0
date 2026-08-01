@@ -845,11 +845,22 @@ a {
     text-decoration: none;
     font-size: 0.62rem;
     font-weight: 750;
+    transition: color 160ms ease, background 160ms ease, transform 120ms ease;
   }
 
   .mobile-tabbar a[aria-current="page"] {
     color: var(--color-accent-strong);
     background: var(--color-accent-soft);
+  }
+
+  .mobile-tabbar a.mobile-tabbar__whatsapp {
+    color: #128c4a;
+    background: rgba(37, 211, 102, 0.1);
+  }
+
+  .mobile-tabbar a.mobile-tabbar__whatsapp:active {
+    background: rgba(37, 211, 102, 0.2);
+    transform: scale(0.94);
   }
 
   body { padding-bottom: 5.4rem; }
