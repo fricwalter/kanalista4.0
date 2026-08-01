@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
+import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { getCached, setCache } from "@/lib/cache";
 import type { CacheCategory, PublicCategory, PublicContentItem } from "@/types/public-content";
@@ -13,7 +13,7 @@ type BrowserProps = {
   initialCategories: PublicCategory[];
 };
 
-const PAGE_SIZE = 240;
+const PAGE_SIZE = 120;
 
 const CACHE_KEYS = {
   live: { items: "live_channels", categories: "live_cats" },
@@ -139,6 +139,7 @@ export default function PublicContentBrowser({
   const [categories, setCategories] = useState<PublicCategory[]>(initialCategories);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("alle");
+  const [regionFilter, setRegionFilter] = useState<"all" | "exyu" | "de">("all");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -178,7 +179,7 @@ export default function PublicContentBrowser({
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [activeCategory, search]);
+  }, [activeCategory, regionFilter, search]);
 
   const categoryMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -206,12 +207,18 @@ export default function PublicContentBrowser({
       const itemCategoryId = getCategoryId(item);
       const categoryName = categoryMap.get(itemCategoryId) || "";
       const matchesCategory = activeCategory === "alle" || itemCategoryId === activeCategory;
+      const regionPriority = getRegionPriority(`${categoryName} ${getDisplayName(item)}`);
+      const matchesRegion =
+        kind !== "live" ||
+        regionFilter === "all" ||
+        (regionFilter === "exyu" && regionPriority === 0) ||
+        (regionFilter === "de" && regionPriority === 1);
       const matchesSearch =
         q.length === 0 ||
         getDisplayName(item).toLowerCase().includes(q) ||
         categoryName.toLowerCase().includes(q) ||
         getGenre(item).toLowerCase().includes(q);
-      return matchesCategory && matchesSearch;
+      return matchesCategory && matchesRegion && matchesSearch;
     });
 
     if (kind !== "live") return matchingItems;
@@ -226,7 +233,7 @@ export default function PublicContentBrowser({
         return aPriority - bPriority || a.index - b.index;
       })
       .map(({ item }) => item);
-  }, [activeCategory, categoryMap, items, kind, search]);
+  }, [activeCategory, categoryMap, items, kind, regionFilter, search]);
 
   const visibleItems = useMemo(
     () => filteredItems.slice(0, visibleCount),
@@ -234,83 +241,77 @@ export default function PublicContentBrowser({
   );
 
   return (
-    <main className="min-h-screen p-4 md:p-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <header className="glass-card p-6 md:p-8">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-violet-300">Kanalista 4.0</p>
-              <h1 className="mt-2 text-3xl font-bold text-white md:text-4xl">{title}</h1>
-              <p className="mt-2 text-sm text-gray-300 md:text-base">{description}</p>
-            </div>
-            <nav className="flex flex-wrap gap-2">
-              <Link href="/" className="glass-button rounded-lg px-4 py-2 text-sm">
-                Start
-              </Link>
-              <Link href="/live" className="glass-button rounded-lg px-4 py-2 text-sm">
-                Live
-              </Link>
-              <Link href="/filme" className="glass-button rounded-lg px-4 py-2 text-sm">
-                Filme
-              </Link>
-              <Link href="/serien" className="glass-button rounded-lg px-4 py-2 text-sm">
-                Serien
-              </Link>
-              <Link href="/suche" className="glass-button-primary rounded-lg px-4 py-2 text-sm">
-                Suche
-              </Link>
-            </nav>
+    <main className="catalog-page">
+      <div className="catalog-shell">
+        <header className="catalog-intro">
+          <div>
+            <p className="catalog-eyebrow">Kanalista 4.0</p>
+            <h1>{title}</h1>
+            <p>{description}</p>
           </div>
+          <span className="catalog-total" aria-live="polite">
+            {loading ? "Lädt …" : `${filteredItems.length.toLocaleString("de-DE")} Treffer`}
+          </span>
         </header>
 
-        <section className="glass-card p-4 md:p-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <section className="catalog-controls" aria-label="Kanäle filtern">
+          <label className="catalog-search">
+            <Search aria-hidden="true" size={19} strokeWidth={2.2} />
+            <span className="sr-only">Suchen</span>
             <input
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Nach Titel, Kategorie oder Genre suchen..."
-              className="glass-input w-full md:max-w-lg"
+              placeholder="Kanal, Film oder Serie suchen"
             />
-            <p className="text-sm text-gray-300">
-              {loading ? "Daten werden geladen..." : `${filteredItems.length} von ${items.length} Eintraegen`}
-            </p>
-          </div>
+          </label>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setActiveCategory("alle")}
-              className={`rounded-lg border px-3 py-1 text-sm transition ${
-                activeCategory === "alle"
-                  ? "border-violet-300 bg-violet-500/20 text-white"
-                  : "border-white/10 bg-white/5 text-gray-300 hover:bg-white/10"
-              }`}
-            >
-              Alle Kategorien
-            </button>
-            {orderedCategories.map((category) => {
-              const id = String(category.category_id);
-              const selected = activeCategory === id;
-              return (
+          <div className="catalog-filter-row">
+            {kind === "live" && (
+              <div className="region-switch" aria-label="Region auswählen">
+                {(
+                  [
+                    ["all", "Alle"],
+                    ["exyu", "EXYU"],
+                    ["de", "DE"],
+                  ] as const
+                ).map(([value, label]) => (
                 <button
-                  key={id}
+                  key={value}
                   type="button"
-                  onClick={() => setActiveCategory(id)}
-                  className={`rounded-lg border px-3 py-1 text-sm transition ${
-                    selected
-                      ? "border-violet-300 bg-violet-500/20 text-white"
-                      : "border-white/10 bg-white/5 text-gray-300 hover:bg-white/10"
-                  }`}
+                  aria-pressed={regionFilter === value}
+                  onClick={() => {
+                    setRegionFilter(value);
+                    setActiveCategory("alle");
+                  }}
                 >
-                  {category.category_name}
+                  {label}
                 </button>
-              );
-            })}
+                ))}
+              </div>
+            )}
+
+            <label className="category-select">
+              <span>Kategorie</span>
+              <select
+                value={activeCategory}
+                onChange={(event) => {
+                  setActiveCategory(event.target.value);
+                  setRegionFilter("all");
+                }}
+              >
+                <option value="alle">Alle Kategorien</option>
+                {orderedCategories.map((category) => (
+                  <option key={String(category.category_id)} value={String(category.category_id)}>
+                    {category.category_name}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
         </section>
 
-        <section className="channel-grid">
+        <section className="channel-grid" aria-busy={loading}>
           {visibleItems.map((item, index) => {
             const name = getDisplayName(item);
             const categoryName = categoryMap.get(getCategoryId(item)) || "Ohne Kategorie";
@@ -319,43 +320,33 @@ export default function PublicContentBrowser({
             const image = getImage(item, kind);
 
             return (
-              <article key={`${name}-${index}`} className="glass-card-hover p-3">
-                {image ? (
-                  <img
-                    src={image}
-                    alt={name}
-                    loading="lazy"
-                    className="h-36 w-full rounded-lg border border-white/10 object-cover"
-                  />
-                ) : (
-                  <div className="flex h-36 w-full items-center justify-center rounded-lg border border-white/10 bg-white/5 text-xs text-gray-400">
-                    Kein Bild
-                  </div>
-                )}
-
-                <h2 className="mt-3 line-clamp-2 text-sm font-semibold text-white">{name}</h2>
-
-                <p className="mt-1 inline-block rounded-full bg-violet-500/20 px-2 py-0.5 text-xs text-violet-200">
-                  {categoryName}
-                </p>
-
-                {kind !== "live" && genre && (
-                  <p className="mt-2 line-clamp-1 text-xs text-gray-300">Genre: {genre}</p>
-                )}
-                {kind === "series" && rating && (
-                  <p className="mt-1 text-xs text-yellow-300">Bewertung: {rating}</p>
-                )}
+              <article key={`${name}-${index}`} className="channel-card">
+                <div className="channel-card__media">
+                  {image ? (
+                    <img src={image} alt="" loading="lazy" />
+                  ) : (
+                    <span aria-hidden="true">TV</span>
+                  )}
+                </div>
+                <div className="channel-card__body">
+                  <h2>{name}</h2>
+                  <p className="channel-card__category">{categoryName}</p>
+                  {kind !== "live" && genre && <p className="channel-card__meta">{genre}</p>}
+                  {kind === "series" && rating && (
+                    <p className="channel-card__rating">★ {rating}</p>
+                  )}
+                </div>
               </article>
             );
           })}
         </section>
 
         {!loading && visibleItems.length < filteredItems.length && (
-          <div className="flex justify-center">
+          <div className="catalog-more">
             <button
               type="button"
               onClick={() => setVisibleCount((current) => current + PAGE_SIZE)}
-              className="glass-button-primary rounded-lg px-5 py-2.5 text-sm"
+              className="primary-button"
             >
               Weitere {Math.min(PAGE_SIZE, filteredItems.length - visibleItems.length)} anzeigen
             </button>
@@ -363,12 +354,12 @@ export default function PublicContentBrowser({
         )}
 
         {loadError && (
-          <div className="glass-card p-6 text-center text-sm text-red-200">{loadError}</div>
+          <div className="catalog-message catalog-message--error">{loadError}</div>
         )}
 
         {!loading && !loadError && filteredItems.length === 0 && (
-          <div className="glass-card p-8 text-center text-sm text-gray-300">
-            Keine Eintraege fuer die aktuelle Suche gefunden.
+          <div className="catalog-message">
+            Keine Einträge für die aktuelle Auswahl gefunden.
           </div>
         )}
       </div>

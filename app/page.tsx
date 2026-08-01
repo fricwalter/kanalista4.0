@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { ArrowRight, Clapperboard, Film, Search, Tv } from "lucide-react";
 import { getPublicChannelCount } from "@/lib/public-supabase";
 
 export const revalidate = 604800;
+
+const numberFormatter = new Intl.NumberFormat("de-DE");
 
 export default async function Home() {
   const [live, vod, series] = await Promise.all([
@@ -10,60 +13,49 @@ export default async function Home() {
     getPublicChannelCount("series"),
   ]);
 
+  const areas = [
+    { href: "/live", label: "Live-Kanäle", count: live, icon: Tv, note: "EXYU zuerst, danach Deutschland" },
+    { href: "/filme", label: "Filme", count: vod, icon: Film, note: "Schnell nach Kategorie filtern" },
+    { href: "/serien", label: "Serien", count: series, icon: Clapperboard, note: "Übersichtlich und mobil optimiert" },
+  ];
+
   return (
-    <main className="min-h-screen p-4 md:p-8">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <section className="glass-card p-6 md:p-10">
-          <p className="text-xs uppercase tracking-[0.2em] text-violet-300">Kanalista 4.0</p>
-          <h1 className="mt-3 text-3xl font-bold text-white md:text-5xl">Oeffentliche Kanaluebersicht</h1>
-          <p className="mt-4 max-w-3xl text-sm text-gray-300 md:text-base">
-            Hier siehst du alle verfuegbaren Live-Kanaele, Filme und Serien als oeffentliche Uebersicht.
-            Stream-URLs und Zugangsdaten werden nicht angezeigt.
-          </p>
-        </section>
-
-        <section className="grid gap-4 md:grid-cols-3">
-          <div className="glass-card-hover p-6">
-            <p className="text-xs uppercase tracking-wide text-gray-400">Live-Kanaele</p>
-            <p className="mt-2 text-4xl font-bold text-white">{live}</p>
-            <Link href="/live" className="mt-4 inline-block text-sm text-violet-200 hover:text-violet-100">
-              Zur Live-Uebersicht
-            </Link>
+    <main className="home-page">
+      <div className="home-shell">
+        <section className="home-intro">
+          <div>
+            <p className="home-intro__eyebrow">Kanalista 4.0</p>
+            <h1>Was läuft?</h1>
+            <p className="home-intro__lead">
+              Finde Live-Kanäle, Filme und Serien ohne Umwege. Die Übersicht zeigt keine
+              Zugangsdaten oder Stream-Adressen.
+            </p>
           </div>
 
-          <div className="glass-card-hover p-6">
-            <p className="text-xs uppercase tracking-wide text-gray-400">Filme</p>
-            <p className="mt-2 text-4xl font-bold text-white">{vod}</p>
-            <Link href="/filme" className="mt-4 inline-block text-sm text-violet-200 hover:text-violet-100">
-              Zur Film-Uebersicht
+          <div className="home-actions">
+            <Link href="/live" className="primary-button">
+              Live öffnen <ArrowRight size={18} aria-hidden="true" />
             </Link>
-          </div>
-
-          <div className="glass-card-hover p-6">
-            <p className="text-xs uppercase tracking-wide text-gray-400">Serien</p>
-            <p className="mt-2 text-4xl font-bold text-white">{series}</p>
-            <Link href="/serien" className="mt-4 inline-block text-sm text-violet-200 hover:text-violet-100">
-              Zur Serien-Uebersicht
+            <Link href="/suche" className="secondary-button">
+              <Search size={18} aria-hidden="true" /> Alles durchsuchen
             </Link>
           </div>
         </section>
 
-        <section className="glass-card p-6">
-          <div className="flex flex-wrap gap-3">
-            <Link href="/suche" className="glass-button-primary rounded-lg px-4 py-2 text-sm">
-              Globale Suche
+        <section className="catalog-links" aria-label="Inhalte">
+          {areas.map(({ href, label, count, icon: Icon, note }) => (
+            <Link key={href} href={href} className="catalog-link">
+              <span className="catalog-link__icon"><Icon size={22} aria-hidden="true" /></span>
+              <strong className="catalog-link__count">{numberFormatter.format(count)}</strong>
+              <span className="catalog-link__label">
+                <span>{label}<small>{note}</small></span>
+                <ArrowRight size={20} aria-hidden="true" />
+              </span>
             </Link>
-            <Link href="/live" className="glass-button rounded-lg px-4 py-2 text-sm">
-              Live
-            </Link>
-            <Link href="/filme" className="glass-button rounded-lg px-4 py-2 text-sm">
-              Filme
-            </Link>
-            <Link href="/serien" className="glass-button rounded-lg px-4 py-2 text-sm">
-              Serien
-            </Link>
-          </div>
+          ))}
         </section>
+
+        <p className="home-note">Ein Katalog von EXJU TV · Für Handy, Tablet und Fernseher optimiert.</p>
       </div>
     </main>
   );

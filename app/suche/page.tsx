@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
+import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { getCached, setCache } from "@/lib/cache";
 import type { CacheCategory, PublicCategory, PublicContentItem } from "@/types/public-content";
@@ -21,31 +21,20 @@ const CACHE_KEYS = {
   series: { items: "series", categories: "series_cats" },
 } as const;
 
-const KIND_LABEL: Record<CacheCategory, string> = {
-  live: "Live",
-  vod: "Filme",
-  series: "Serien",
-};
+const KIND_LABEL: Record<CacheCategory, string> = { live: "Live", vod: "Filme", series: "Serien" };
 
 function safeText(value: unknown): string {
-  if (typeof value !== "string") return "";
-  return value.trim();
+  return typeof value === "string" ? value.trim() : "";
 }
 
 function getName(item: PublicContentItem): string {
-  return (
-    safeText(item.name) ||
-    safeText(item.title) ||
-    safeText(item.series_name) ||
-    safeText(item.stream_name) ||
-    "Unbekannter Titel"
-  );
+  return safeText(item.name) || safeText(item.title) || safeText(item.series_name) ||
+    safeText(item.stream_name) || "Unbekannter Titel";
 }
 
 function getCategoryId(item: PublicContentItem): string {
-  if (typeof item.category_id === "number") return String(item.category_id);
-  if (typeof item.category_id === "string") return item.category_id;
-  return "";
+  return typeof item.category_id === "number" || typeof item.category_id === "string"
+    ? String(item.category_id) : "";
 }
 
 function getImage(item: PublicContentItem): string {
@@ -54,36 +43,14 @@ function getImage(item: PublicContentItem): string {
   return image.startsWith("https://") || image.startsWith("data:image/") ? image : "";
 }
 
-function getGenre(item: PublicContentItem): string {
-  return safeText(item.genre);
-}
-
-function getRating(item: PublicContentItem): string {
-  if (typeof item.rating === "number") return item.rating.toFixed(1);
-  if (typeof item.rating === "string") return item.rating;
-  return "";
-}
-
 async function fetchChannelData(kind: CacheCategory): Promise<PublicContentItem[]> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return [];
-
-  const params = new URLSearchParams({
-    select: "data,fetched_at",
-    category: `eq.${kind}`,
-    order: "fetched_at.desc",
-    limit: "1",
+  const params = new URLSearchParams({ select: "data,fetched_at", category: `eq.${kind}`, order: "fetched_at.desc", limit: "1" });
+  const res = await fetch(`${url}/rest/v1/channel_cache?${params}`, {
+    headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
   });
-
-  const res = await fetch(`${url}/rest/v1/channel_cache?${params.toString()}`, {
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-  });
-
   if (!res.ok) return [];
   const rows = (await res.json()) as Array<{ data: PublicContentItem[] | null }>;
   return Array.isArray(rows[0]?.data) ? rows[0].data : [];
@@ -93,215 +60,104 @@ async function fetchCategories(kind: CacheCategory): Promise<PublicCategory[]> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return [];
-
-  const params = new URLSearchParams({
-    select: "categories,fetched_at",
-    type: `eq.${kind}`,
-    order: "fetched_at.desc",
-    limit: "1",
+  const params = new URLSearchParams({ select: "categories,fetched_at", type: `eq.${kind}`, order: "fetched_at.desc", limit: "1" });
+  const res = await fetch(`${url}/rest/v1/categories_cache?${params}`, {
+    headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
   });
-
-  const res = await fetch(`${url}/rest/v1/categories_cache?${params.toString()}`, {
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-  });
-
   if (!res.ok) return [];
   const rows = (await res.json()) as Array<{ categories: PublicCategory[] | null }>;
   return Array.isArray(rows[0]?.categories) ? rows[0].categories : [];
 }
 
 export default function SuchePage() {
-  const [itemsByKind, setItemsByKind] = useState<Record<CacheCategory, PublicContentItem[]>>({
-    live: [],
-    vod: [],
-    series: [],
-  });
-  const [categoriesByKind, setCategoriesByKind] = useState<Record<CacheCategory, PublicCategory[]>>({
-    live: [],
-    vod: [],
-    series: [],
-  });
+  const [itemsByKind, setItemsByKind] = useState<Record<CacheCategory, PublicContentItem[]>>({ live: [], vod: [], series: [] });
+  const [categoriesByKind, setCategoriesByKind] = useState<Record<CacheCategory, PublicCategory[]>>({ live: [], vod: [], series: [] });
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-
     const load = async () => {
       setLoading(true);
-
       const kinds: CacheCategory[] = ["live", "vod", "series"];
       const nextItems: Record<CacheCategory, PublicContentItem[]> = { live: [], vod: [], series: [] };
-      const nextCategories: Record<CacheCategory, PublicCategory[]> = {
-        live: [],
-        vod: [],
-        series: [],
-      };
-
-      await Promise.all(
-        kinds.map(async (kind) => {
-          const keys = CACHE_KEYS[kind];
-          const cachedItems = getCached<PublicContentItem[]>(keys.items);
-          const cachedCategories = getCached<PublicCategory[]>(keys.categories);
-
-          if (cachedItems && cachedItems.length > 0) {
-            nextItems[kind] = cachedItems;
-          } else {
-            const fetchedItems = await fetchChannelData(kind);
-            nextItems[kind] = fetchedItems;
-            setCache(keys.items, fetchedItems);
-          }
-
-          if (cachedCategories && cachedCategories.length > 0) {
-            nextCategories[kind] = cachedCategories;
-          } else {
-            const fetchedCategories = await fetchCategories(kind);
-            nextCategories[kind] = fetchedCategories;
-            setCache(keys.categories, fetchedCategories);
-          }
-        })
-      );
-
+      const nextCategories: Record<CacheCategory, PublicCategory[]> = { live: [], vod: [], series: [] };
+      await Promise.all(kinds.map(async (kind) => {
+        const keys = CACHE_KEYS[kind];
+        const cachedItems = getCached<PublicContentItem[]>(keys.items);
+        const cachedCategories = getCached<PublicCategory[]>(keys.categories);
+        nextItems[kind] = cachedItems?.length ? cachedItems : await fetchChannelData(kind);
+        nextCategories[kind] = cachedCategories?.length ? cachedCategories : await fetchCategories(kind);
+        if (!cachedItems?.length) setCache(keys.items, nextItems[kind]);
+        if (!cachedCategories?.length) setCache(keys.categories, nextCategories[kind]);
+      }));
       if (!cancelled) {
         setItemsByKind(nextItems);
         setCategoriesByKind(nextCategories);
         setLoading(false);
       }
     };
-
     load();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   const groupedResults = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query = search.trim().toLocaleLowerCase("de");
     const groups: Record<CacheCategory, SearchEntry[]> = { live: [], vod: [], series: [] };
-    const kinds: CacheCategory[] = ["live", "vod", "series"];
-
-    kinds.forEach((kind) => {
-      const categoryMap = new Map<string, string>();
-      categoriesByKind[kind].forEach((category) => {
-        categoryMap.set(String(category.category_id), category.category_name);
-      });
-
-      groups[kind] = itemsByKind[kind]
-        .map((item): SearchEntry => {
-          const categoryName = categoryMap.get(getCategoryId(item)) || "Ohne Kategorie";
-          return {
-            kind,
-            name: getName(item),
-            categoryName,
-            genre: getGenre(item),
-            rating: getRating(item),
-            image: getImage(item),
-          };
-        })
-        .filter((entry) => {
-          if (query.length < 2) return false;
-          return (
-            entry.name.toLowerCase().includes(query) ||
-            entry.categoryName.toLowerCase().includes(query) ||
-            entry.genre.toLowerCase().includes(query)
-          );
-        })
-        .slice(0, 240);
+    (["live", "vod", "series"] as CacheCategory[]).forEach((kind) => {
+      const categoryMap = new Map(categoriesByKind[kind].map((category) => [String(category.category_id), category.category_name]));
+      groups[kind] = itemsByKind[kind].map((item) => ({
+        kind,
+        name: getName(item),
+        categoryName: categoryMap.get(getCategoryId(item)) || "Ohne Kategorie",
+        genre: safeText(item.genre),
+        rating: typeof item.rating === "number" ? item.rating.toFixed(1) : safeText(item.rating),
+        image: getImage(item),
+      })).filter((entry) => query.length >= 2 && [entry.name, entry.categoryName, entry.genre]
+        .some((value) => value.toLocaleLowerCase("de").includes(query))).slice(0, 120);
     });
-
     return groups;
   }, [categoriesByKind, itemsByKind, search]);
 
   const total = groupedResults.live.length + groupedResults.vod.length + groupedResults.series.length;
+  const hasQuery = search.trim().length >= 2;
 
   return (
-    <main className="min-h-screen p-4 md:p-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <header className="glass-card p-6 md:p-8">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-violet-300">Kanalista 4.0</p>
-              <h1 className="mt-2 text-3xl font-bold text-white md:text-4xl">Globale Suche</h1>
-              <p className="mt-2 text-sm text-gray-300">
-                Suche gleichzeitig in Live-Kanaelen, Filmen und Serien.
-              </p>
-            </div>
-            <nav className="flex flex-wrap gap-2">
-              <Link href="/" className="glass-button rounded-lg px-4 py-2 text-sm">
-                Start
-              </Link>
-              <Link href="/live" className="glass-button rounded-lg px-4 py-2 text-sm">
-                Live
-              </Link>
-              <Link href="/filme" className="glass-button rounded-lg px-4 py-2 text-sm">
-                Filme
-              </Link>
-              <Link href="/serien" className="glass-button rounded-lg px-4 py-2 text-sm">
-                Serien
-              </Link>
-            </nav>
-          </div>
-        </header>
-
-        <section className="glass-card p-4 md:p-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <input
-              type="text"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Nach Titel, Kategorie oder Genre suchen..."
-              className="glass-input w-full md:max-w-lg"
-            />
-            <p className="text-sm text-gray-300">{loading ? "Lade Daten..." : `${total} Treffer`}</p>
-          </div>
-          {!loading && search.trim().length < 2 && (
-            <p className="mt-3 text-xs text-gray-400">Mindestens zwei Zeichen eingeben.</p>
-          )}
-          {!loading && search.trim().length >= 2 && (
-            <p className="mt-3 text-xs text-gray-400">Es werden bis zu 240 Treffer pro Bereich angezeigt.</p>
-          )}
+    <main className="catalog-page">
+      <div className="catalog-shell">
+        <section className="catalog-intro">
+          <div><p className="catalog-eyebrow">Kanalista 4.0</p><h1>Alles durchsuchen</h1></div>
+          <span className="catalog-total">{loading ? "Lädt …" : `${total} Treffer`}</span>
         </section>
 
-        {(["live", "vod", "series"] as CacheCategory[]).map((kind) => (
-          <section key={kind} className="glass-card p-4 md:p-6">
-            <h2 className="text-xl font-semibold text-white">
-              {KIND_LABEL[kind]} ({groupedResults[kind].length})
-            </h2>
+        <section className="catalog-controls search-page-controls">
+          <label className="catalog-search">
+            <Search size={19} aria-hidden="true" />
+            <input autoFocus type="search" value={search} onChange={(event) => setSearch(event.target.value)}
+              placeholder="Sender, Film, Serie oder Genre …" />
+          </label>
+          <p className="search-hint">{hasQuery ? "Bis zu 120 Treffer je Bereich" : "Mindestens zwei Zeichen eingeben"}</p>
+        </section>
 
-            <div className="mt-4 channel-grid">
+        {hasQuery && (["live", "vod", "series"] as CacheCategory[]).map((kind) => (
+          <section key={kind} className="search-results-section">
+            <div className="results-heading"><h2>{KIND_LABEL[kind]}</h2><span>{groupedResults[kind].length}</span></div>
+            <div className="channel-grid">
               {groupedResults[kind].map((entry, index) => (
-                <article key={`${entry.kind}-${entry.name}-${index}`} className="glass-card-hover p-3">
-                  {entry.image ? (
-                    <img
-                      src={entry.image}
-                      alt={entry.name}
-                      loading="lazy"
-                      className="h-36 w-full rounded-lg border border-white/10 object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-36 w-full items-center justify-center rounded-lg border border-white/10 bg-white/5 text-xs text-gray-400">
-                      Kein Bild
-                    </div>
-                  )}
-                  <h3 className="mt-3 line-clamp-2 text-sm font-semibold text-white">{entry.name}</h3>
-                  <p className="mt-1 inline-block rounded-full bg-violet-500/20 px-2 py-0.5 text-xs text-violet-200">
-                    {entry.categoryName}
-                  </p>
-                  {entry.genre && <p className="mt-2 line-clamp-1 text-xs text-gray-300">Genre: {entry.genre}</p>}
-                  {kind === "series" && entry.rating && (
-                    <p className="mt-1 text-xs text-yellow-300">Bewertung: {entry.rating}</p>
-                  )}
+                <article key={`${entry.kind}-${entry.name}-${index}`} className="channel-card">
+                  <div className="channel-card__media">
+                    {entry.image ? <img src={entry.image} alt="" loading="lazy" /> : <span>{KIND_LABEL[kind].slice(0, 1)}</span>}
+                  </div>
+                  <div className="channel-card__body">
+                    <h2>{entry.name}</h2>
+                    <p className="channel-card__category">{entry.categoryName}</p>
+                    {entry.genre && <p className="channel-card__meta">{entry.genre}</p>}
+                    {kind === "series" && entry.rating && <p className="channel-card__rating">Bewertung {entry.rating}</p>}
+                  </div>
                 </article>
               ))}
             </div>
-
-            {groupedResults[kind].length === 0 && (
-              <p className="mt-4 text-sm text-gray-300">Keine Treffer in dieser Kategorie.</p>
-            )}
+            {!loading && groupedResults[kind].length === 0 && <p className="catalog-message">Keine Treffer.</p>}
           </section>
         ))}
       </div>
