@@ -1,5 +1,7 @@
 import MediaDetail from "@/app/_components/media-detail";
 
+export const runtime = "edge";
+
 type DetailPageProps = {
   params: { slug: string };
   searchParams: { title?: string; year?: string };
