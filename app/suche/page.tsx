@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/app/_components/language-context";
 import { getCached, setCache } from "@/lib/cache";
+import { getChannelImageUrl } from "@/lib/channel-image";
 import type { CacheCategory, PublicCategory, PublicContentItem } from "@/types/public-content";
 
 type SearchEntry = {
@@ -37,8 +38,7 @@ function getCategoryId(item: PublicContentItem): string {
 
 function getImage(item: PublicContentItem): string {
   const image = safeText(item.cover) || safeText(item.stream_icon) || safeText(item.thumbnail);
-  if (image.startsWith("//")) return `https:${image}`;
-  return image.startsWith("https://") || image.startsWith("data:image/") ? image : "";
+  return getChannelImageUrl(image);
 }
 
 async function fetchChannelData(kind: CacheCategory): Promise<PublicContentItem[]> {

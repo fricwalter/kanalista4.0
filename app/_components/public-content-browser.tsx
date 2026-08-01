@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/app/_components/language-context";
 import { getCached, setCache } from "@/lib/cache";
+import { getChannelImageUrl } from "@/lib/channel-image";
 import type { CacheCategory, PublicCategory, PublicContentItem } from "@/types/public-content";
 
 type BrowserProps = {
@@ -46,8 +47,7 @@ function getImage(item: PublicContentItem, kind: CacheCategory): string {
     kind === "series"
       ? safeText(item.cover) || safeText(item.stream_icon)
       : safeText(item.stream_icon) || safeText(item.thumbnail) || safeText(item.cover);
-  if (image.startsWith("//")) return `https:${image}`;
-  return image.startsWith("https://") || image.startsWith("data:image/") ? image : "";
+  return getChannelImageUrl(image);
 }
 
 function getGenre(item: PublicContentItem): string {
