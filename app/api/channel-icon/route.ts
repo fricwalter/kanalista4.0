@@ -52,7 +52,14 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   try {
-    const upstream = await fetch(imageUrl.toString(), {
+    const deliveryUrl = new URL("https://wsrv.nl/");
+    deliveryUrl.searchParams.set("url", imageUrl.toString().replace(/^http:\/\//, ""));
+    deliveryUrl.searchParams.set("w", "320");
+    deliveryUrl.searchParams.set("h", "320");
+    deliveryUrl.searchParams.set("fit", "inside");
+    deliveryUrl.searchParams.set("output", "png");
+
+    const upstream = await fetch(deliveryUrl.toString(), {
       redirect: "error",
       signal: AbortSignal.timeout(8000),
       headers: { Accept: "image/avif,image/webp,image/png,image/jpeg,image/gif,*/*;q=0.5" },
