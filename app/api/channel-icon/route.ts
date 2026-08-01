@@ -61,7 +61,6 @@ export async function GET(request: Request): Promise<Response> {
 
     const upstream = await fetch(deliveryUrl.toString(), {
       redirect: "error",
-      signal: AbortSignal.timeout(8000),
       headers: { Accept: "image/avif,image/webp,image/png,image/jpeg,image/gif,*/*;q=0.5" },
     });
     if (!upstream.ok) return errorResponse("Image unavailable", 502);
