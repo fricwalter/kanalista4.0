@@ -8,9 +8,9 @@ function text(value: unknown): string {
 export function parseMediaTitle(value: string): { title: string; year: string } {
   const year = value.match(/(?:^|\D)((?:19|20)\d{2})(?:\D|$)/)?.[1] || "";
   const title = value
-    .replace(/^EX\s*-\s*/i, "")
+    .replace(/^(?:EX|NF|EN|-?DE)\s*-\s*/i, "")
     .replace(/\((?:19|20)\d{2}\)/g, "")
-    .replace(/\((?:DE|EN|FR|IT|ES|TR|NL|PL|RU|MULTI)\)$/i, "")
+    .replace(/\((?:[A-Z]{2}|MULTI)\)$/i, "")
     .replace(/\b(?:4K|UHD|FHD)\b/gi, "")
     .replace(/\s+/g, " ")
     .trim();

@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { ChevronRight, Search } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import BackToTop from "@/app/_components/back-to-top";
 import { useLanguage } from "@/app/_components/language-context";
 import { getCached, setCache } from "@/lib/cache";
@@ -153,6 +153,7 @@ export default function PublicContentBrowser({
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const prefetchStartedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -251,12 +252,13 @@ export default function PublicContentBrowser({
   );
 
   useEffect(() => {
-    if (kind === "live" || visibleItems.length === 0) return;
+    if (kind === "live" || visibleItems.length === 0 || prefetchStartedRef.current) return;
 
     const connection = (navigator as Navigator & {
       connection?: { saveData?: boolean; effectiveType?: string };
     }).connection;
     if (connection?.saveData || connection?.effectiveType?.includes("2g")) return;
+    prefetchStartedRef.current = true;
 
     const controller = new AbortController();
     const prefetch = async () => {
@@ -268,6 +270,7 @@ export default function PublicContentBrowser({
           kind: kind === "vod" ? "movie" : "tv",
           title: url.searchParams.get("title") || detail.preview.title,
           language: language === "de" ? "de-DE" : "bs-BA",
+          prefetch: "1",
         });
         const year = url.searchParams.get("year");
         if (year) params.set("year", year);

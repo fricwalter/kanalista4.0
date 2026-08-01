@@ -132,6 +132,7 @@ export async function GET(request: NextRequest) {
   const year = request.nextUrl.searchParams.get("year")?.trim() || "";
   const requestedLanguage = request.nextUrl.searchParams.get("language") === "de-DE" ? "de-DE" : "bs-BA";
   const forceRefresh = request.nextUrl.searchParams.get("refresh") === "1";
+  const isPrefetch = request.nextUrl.searchParams.get("prefetch") === "1";
   if ((kind !== "movie" && kind !== "tv") || title.length < 1 || title.length > 160 || (year && !/^(?:19|20)\d{2}$/.test(year))) {
     return NextResponse.json({ error: "Ungueltige Anfrage" }, { status: 400 });
   }
@@ -145,12 +146,14 @@ export async function GET(request: NextRequest) {
   const token = process.env.TMDB_API_READ_ACCESS_TOKEN;
   if (!token) {
     if (cached) return mediaResponse(cached.details, "STALE-FALLBACK", "private, no-store");
+    if (isPrefetch) return new NextResponse(null, { status: 204, headers: { "Cache-Control": "public, s-maxage=3600" } });
     return NextResponse.json({ error: "TMDB ist nicht konfiguriert" }, { status: 503 });
   }
 
   const details = await fetchTmdbDetails(kind, title, year, requestedLanguage, token);
   if (!details) {
     if (cached) return mediaResponse(cached.details, "STALE-FALLBACK", "private, no-store");
+    if (isPrefetch) return new NextResponse(null, { status: 204, headers: { "Cache-Control": "public, s-maxage=86400" } });
     return NextResponse.json({ error: "Titel nicht gefunden" }, { status: 404 });
   }
 
