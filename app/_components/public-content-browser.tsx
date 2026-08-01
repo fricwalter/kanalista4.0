@@ -252,7 +252,12 @@ export default function PublicContentBrowser({
             <h1>{title}</h1>
             <p>{description}</p>
           </div>
-          <span className="catalog-total" aria-live="polite">
+          <span
+            className={`catalog-total${loading ? " catalog-total--loading" : ""}`}
+            aria-live="polite"
+            aria-busy={loading}
+            role="status"
+          >
             {loading ? copy.catalog.loading : `${filteredItems.length.toLocaleString("de-DE")} ${copy.catalog.results}`}
           </span>
         </header>
