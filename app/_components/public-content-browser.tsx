@@ -19,6 +19,7 @@ type BrowserProps = {
 };
 
 const PAGE_SIZE = 120;
+const PREFETCH_SIZE = 12;
 
 const CACHE_KEYS = {
   live: { items: "live_channels", categories: "live_cats" },
@@ -142,7 +143,7 @@ export default function PublicContentBrowser({
   lastUpdated,
   initialCategories,
 }: BrowserProps) {
-  const { copy } = useLanguage();
+  const { copy, language } = useLanguage();
   const keys = CACHE_KEYS[kind];
   const [items, setItems] = useState<PublicContentItem[]>([]);
   const [categories, setCategories] = useState<PublicCategory[]>(initialCategories);
@@ -248,6 +249,54 @@ export default function PublicContentBrowser({
     () => filteredItems.slice(0, visibleCount),
     [filteredItems, visibleCount]
   );
+
+  useEffect(() => {
+    if (kind === "live" || visibleItems.length === 0) return;
+
+    const connection = (navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    }).connection;
+    if (connection?.saveData || connection?.effectiveType?.includes("2g")) return;
+
+    const controller = new AbortController();
+    const prefetch = async () => {
+      const candidates = visibleItems.slice(0, PREFETCH_SIZE).map((item) => {
+        const categoryName = categoryMap.get(getCategoryId(item)) || "";
+        const detail = buildMediaDetail(kind, item, categoryName, getImage(item, kind));
+        const url = new URL(detail.href, window.location.origin);
+        const params = new URLSearchParams({
+          kind: kind === "vod" ? "movie" : "tv",
+          title: url.searchParams.get("title") || detail.preview.title,
+          language: language === "de" ? "de-DE" : "bs-BA",
+        });
+        const year = url.searchParams.get("year");
+        if (year) params.set("year", year);
+        return `/api/tmdb-details?${params.toString()}`;
+      });
+
+      for (let index = 0; index < candidates.length && !controller.signal.aborted; index += 2) {
+        await Promise.allSettled(candidates.slice(index, index + 2).map(async (url) => {
+          const response = await fetch(url, { signal: controller.signal });
+          if (response.ok) await response.arrayBuffer();
+        }));
+      }
+    };
+
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    const usedIdleCallback = typeof idleWindow.requestIdleCallback === "function";
+    const idleHandle = usedIdleCallback
+      ? idleWindow.requestIdleCallback(() => void prefetch(), { timeout: 2500 })
+      : window.setTimeout(() => void prefetch(), 1500);
+
+    return () => {
+      controller.abort();
+      if (usedIdleCallback && idleWindow.cancelIdleCallback) idleWindow.cancelIdleCallback(idleHandle);
+      else window.clearTimeout(idleHandle);
+    };
+  }, [categoryMap, kind, language, visibleItems]);
 
   const title = kind === "live" ? copy.catalog.liveTitle : kind === "vod" ? copy.catalog.moviesTitle : copy.catalog.seriesTitle;
   const unit = kind === "live" ? copy.catalog.liveUnit : kind === "vod" ? copy.catalog.moviesUnit : copy.catalog.seriesUnit;

@@ -65,10 +65,19 @@ export default function MediaDetail({ kind, slug, sourceTitle, year }: MediaDeta
     if (year) params.set("year", year);
     setLoading(true);
     setFailed(false);
-    fetch(`/api/tmdb-details?${params.toString()}`, { signal: controller.signal })
+    const detailsUrl = `/api/tmdb-details?${params.toString()}`;
+    fetch(detailsUrl, { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error("Details fehlen");
-        setDetails(await response.json() as MediaDetails);
+        const nextDetails = await response.json() as MediaDetails;
+        setDetails(nextDetails);
+        if (response.headers.get("X-Metadata-Cache") === "STALE") {
+          const refreshParams = new URLSearchParams(params);
+          refreshParams.set("refresh", "1");
+          void fetch(`/api/tmdb-details?${refreshParams.toString()}`, { cache: "no-store" }).then(async (refreshResponse) => {
+            if (refreshResponse.ok) setDetails(await refreshResponse.json() as MediaDetails);
+          }).catch(() => undefined);
+        }
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;

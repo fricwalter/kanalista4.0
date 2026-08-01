@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readMediaMetadataCache, writeMediaMetadataCache } from "@/lib/media-metadata-cache";
 import type { MediaDetails, TmdbMediaKind } from "@/types/media-detail";
 
 export const runtime = "edge";
@@ -45,18 +46,13 @@ function stringValue(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
-export async function GET(request: NextRequest) {
-  const token = process.env.TMDB_API_READ_ACCESS_TOKEN;
-  if (!token) return NextResponse.json({ error: "TMDB ist nicht konfiguriert" }, { status: 503 });
-
-  const kind = request.nextUrl.searchParams.get("kind") as TmdbMediaKind | null;
-  const title = request.nextUrl.searchParams.get("title")?.trim() || "";
-  const year = request.nextUrl.searchParams.get("year")?.trim() || "";
-  const requestedLanguage = request.nextUrl.searchParams.get("language") === "de-DE" ? "de-DE" : "bs-BA";
-  if ((kind !== "movie" && kind !== "tv") || title.length < 1 || title.length > 160 || (year && !/^(?:19|20)\d{2}$/.test(year))) {
-    return NextResponse.json({ error: "Ungueltige Anfrage" }, { status: 400 });
-  }
-
+async function fetchTmdbDetails(
+  kind: TmdbMediaKind,
+  title: string,
+  year: string,
+  requestedLanguage: "bs-BA" | "de-DE",
+  token: string,
+): Promise<MediaDetails | null> {
   const titleCandidates = Array.from(new Set([title, ...title.split(/\s+\/\s+/)]));
   let matchedTitle = title;
   let results: TmdbSearchItem[] = [];
@@ -78,7 +74,7 @@ export async function GET(request: NextRequest) {
   }
 
   const match = selectBestResult(results, matchedTitle, year);
-  if (!match?.id) return NextResponse.json({ error: "Titel nicht gefunden" }, { status: 404 });
+  if (!match?.id) return null;
 
   const languages = Array.from(new Set([requestedLanguage, "de-DE", "en-US"]));
   let details: JsonRecord | null = null;
@@ -91,7 +87,7 @@ export async function GET(request: NextRequest) {
       break;
     }
   }
-  if (!details) return NextResponse.json({ error: "Details nicht verfuegbar" }, { status: 502 });
+  if (!details) return null;
 
   const credits = typeof details.credits === "object" && details.credits ? details.credits as JsonRecord : {};
   const crew = Array.isArray(credits.crew) ? credits.crew as JsonRecord[] : [];
@@ -102,7 +98,7 @@ export async function GET(request: NextRequest) {
   const posterPath = stringValue(details.poster_path);
   const backdropPath = stringValue(details.backdrop_path);
 
-  const response: MediaDetails = {
+  return {
     id: match.id,
     title: stringValue(details.title) || stringValue(details.name) || title,
     originalTitle: stringValue(details.original_title) || stringValue(details.original_name),
@@ -119,8 +115,45 @@ export async function GET(request: NextRequest) {
     director: stringValue(crew.find((person) => person.job === "Director")?.name) || stringValue(details.created_by && Array.isArray(details.created_by) ? (details.created_by[0] as JsonRecord | undefined)?.name : ""),
     imdbId: stringValue(externalIds.imdb_id) || stringValue(details.imdb_id),
   };
+}
 
-  return NextResponse.json(response, {
-    headers: { "Cache-Control": "public, s-maxage=604800, stale-while-revalidate=2592000" },
+function mediaResponse(details: MediaDetails, cacheStatus: string, cacheControl = "public, s-maxage=86400, stale-while-revalidate=604800") {
+  return NextResponse.json(details, {
+    headers: {
+      "Cache-Control": cacheControl,
+      "X-Metadata-Cache": cacheStatus,
+    },
   });
+}
+
+export async function GET(request: NextRequest) {
+  const kind = request.nextUrl.searchParams.get("kind") as TmdbMediaKind | null;
+  const title = request.nextUrl.searchParams.get("title")?.trim() || "";
+  const year = request.nextUrl.searchParams.get("year")?.trim() || "";
+  const requestedLanguage = request.nextUrl.searchParams.get("language") === "de-DE" ? "de-DE" : "bs-BA";
+  const forceRefresh = request.nextUrl.searchParams.get("refresh") === "1";
+  if ((kind !== "movie" && kind !== "tv") || title.length < 1 || title.length > 160 || (year && !/^(?:19|20)\d{2}$/.test(year))) {
+    return NextResponse.json({ error: "Ungueltige Anfrage" }, { status: 400 });
+  }
+
+  const cached = await readMediaMetadataCache(kind, title, year, requestedLanguage);
+  if (cached?.fresh && !forceRefresh) return mediaResponse(cached.details, "HIT");
+  if (cached && !forceRefresh) {
+    return mediaResponse(cached.details, "STALE", "private, no-store");
+  }
+
+  const token = process.env.TMDB_API_READ_ACCESS_TOKEN;
+  if (!token) {
+    if (cached) return mediaResponse(cached.details, "STALE-FALLBACK", "private, no-store");
+    return NextResponse.json({ error: "TMDB ist nicht konfiguriert" }, { status: 503 });
+  }
+
+  const details = await fetchTmdbDetails(kind, title, year, requestedLanguage, token);
+  if (!details) {
+    if (cached) return mediaResponse(cached.details, "STALE-FALLBACK", "private, no-store");
+    return NextResponse.json({ error: "Titel nicht gefunden" }, { status: 404 });
+  }
+
+  const stored = await writeMediaMetadataCache(kind, title, year, requestedLanguage, details);
+  return mediaResponse(details, stored ? (forceRefresh ? "REFRESH" : "MISS") : "BYPASS");
 }
