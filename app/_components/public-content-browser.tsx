@@ -10,9 +10,10 @@ type BrowserProps = {
   kind: CacheCategory;
   title: string;
   description: string;
-  initialItems: PublicContentItem[];
   initialCategories: PublicCategory[];
 };
+
+const PAGE_SIZE = 240;
 
 const CACHE_KEYS = {
   live: { items: "live_channels", categories: "live_cats" },
@@ -58,6 +59,30 @@ function getRating(item: PublicContentItem): string {
   return "";
 }
 
+async function fetchChannelData(kind: CacheCategory): Promise<PublicContentItem[]> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) throw new Error("Supabase-Konfiguration fehlt");
+
+  const query = new URLSearchParams({
+    select: "data",
+    category: `eq.${kind}`,
+    order: "fetched_at.desc",
+    limit: "1",
+  });
+  const response = await fetch(`${url}/rest/v1/channel_cache?${query.toString()}`, {
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) throw new Error(`Daten konnten nicht geladen werden (${response.status})`);
+  const rows = (await response.json()) as Array<{ data: PublicContentItem[] | null }>;
+  return Array.isArray(rows[0]?.data) ? rows[0].data : [];
+}
+
 const EXYU_MARKERS = [
   "exyu",
   "ex yu",
@@ -77,7 +102,7 @@ const EXYU_MARKERS = [
   "kosov",
 ];
 
-const GERMAN_MARKERS = ["deutsch", "german", "njemack", "njemačk", "dach"];
+const GERMAN_MARKERS = ["deutsch", "german", "njemack", "dach"];
 
 function normalizeRegionText(value: string): string {
   return value
@@ -105,21 +130,37 @@ export default function PublicContentBrowser({
   kind,
   title,
   description,
-  initialItems,
   initialCategories,
 }: BrowserProps) {
   const keys = CACHE_KEYS[kind];
-  const [items, setItems] = useState<PublicContentItem[]>(initialItems);
+  const [items, setItems] = useState<PublicContentItem[]>([]);
   const [categories, setCategories] = useState<PublicCategory[]>(initialCategories);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("alle");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
     const cachedItems = getCached<PublicContentItem[]>(keys.items);
     if (cachedItems && cachedItems.length > 0) {
       setItems(cachedItems);
+      setLoading(false);
     } else {
-      setCache(keys.items, initialItems);
+      fetchChannelData(kind)
+        .then((freshItems) => {
+          if (cancelled) return;
+          setItems(freshItems);
+          setCache(keys.items, freshItems);
+        })
+        .catch((error: unknown) => {
+          if (cancelled) return;
+          setLoadError(error instanceof Error ? error.message : "Daten konnten nicht geladen werden");
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
     }
 
     const cachedCategories = getCached<PublicCategory[]>(keys.categories);
@@ -128,7 +169,14 @@ export default function PublicContentBrowser({
     } else {
       setCache(keys.categories, initialCategories);
     }
-  }, [initialCategories, initialItems, keys.categories, keys.items]);
+    return () => {
+      cancelled = true;
+    };
+  }, [initialCategories, keys.categories, keys.items, kind]);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [activeCategory, search]);
 
   const categoryMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -178,6 +226,11 @@ export default function PublicContentBrowser({
       .map(({ item }) => item);
   }, [activeCategory, categoryMap, items, kind, search]);
 
+  const visibleItems = useMemo(
+    () => filteredItems.slice(0, visibleCount),
+    [filteredItems, visibleCount]
+  );
+
   return (
     <main className="min-h-screen p-4 md:p-8">
       <div className="mx-auto max-w-7xl space-y-6">
@@ -218,7 +271,7 @@ export default function PublicContentBrowser({
               className="glass-input w-full md:max-w-lg"
             />
             <p className="text-sm text-gray-300">
-              {filteredItems.length} von {items.length} Eintraegen
+              {loading ? "Daten werden geladen..." : `${filteredItems.length} von ${items.length} Eintraegen`}
             </p>
           </div>
 
@@ -256,7 +309,7 @@ export default function PublicContentBrowser({
         </section>
 
         <section className="channel-grid">
-          {filteredItems.map((item, index) => {
+          {visibleItems.map((item, index) => {
             const name = getDisplayName(item);
             const categoryName = categoryMap.get(getCategoryId(item)) || "Ohne Kategorie";
             const genre = getGenre(item);
@@ -295,7 +348,23 @@ export default function PublicContentBrowser({
           })}
         </section>
 
-        {filteredItems.length === 0 && (
+        {!loading && visibleItems.length < filteredItems.length && (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={() => setVisibleCount((current) => current + PAGE_SIZE)}
+              className="glass-button-primary rounded-lg px-5 py-2.5 text-sm"
+            >
+              Weitere {Math.min(PAGE_SIZE, filteredItems.length - visibleItems.length)} anzeigen
+            </button>
+          </div>
+        )}
+
+        {loadError && (
+          <div className="glass-card p-6 text-center text-sm text-red-200">{loadError}</div>
+        )}
+
+        {!loading && !loadError && filteredItems.length === 0 && (
           <div className="glass-card p-8 text-center text-sm text-gray-300">
             Keine Eintraege fuer die aktuelle Suche gefunden.
           </div>

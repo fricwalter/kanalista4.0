@@ -1,11 +1,11 @@
 import PublicContentBrowser from "@/app/_components/public-content-browser";
-import { getPublicCategories, getPublicChannelData } from "@/lib/public-supabase";
+import { getPublicCategories, getPublicChannelCount } from "@/lib/public-supabase";
 
 export const revalidate = 604800;
 
 export default async function FilmePage() {
-  const [channelData, categories] = await Promise.all([
-    getPublicChannelData("vod"),
+  const [channelCount, categories] = await Promise.all([
+    getPublicChannelCount("vod"),
     getPublicCategories("vod"),
   ]);
 
@@ -13,8 +13,7 @@ export default async function FilmePage() {
     <PublicContentBrowser
       kind="vod"
       title="Filme"
-      description={`Oeffentliche Uebersicht mit ${channelData.count} Filmen.`}
-      initialItems={channelData.items}
+      description={`Oeffentliche Uebersicht mit ${channelCount} Filmen.`}
       initialCategories={categories}
     />
   );

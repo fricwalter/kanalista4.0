@@ -1,11 +1,11 @@
 import PublicContentBrowser from "@/app/_components/public-content-browser";
-import { getPublicCategories, getPublicChannelData } from "@/lib/public-supabase";
+import { getPublicCategories, getPublicChannelCount } from "@/lib/public-supabase";
 
 export const revalidate = 604800;
 
 export default async function LivePage() {
-  const [channelData, categories] = await Promise.all([
-    getPublicChannelData("live"),
+  const [channelCount, categories] = await Promise.all([
+    getPublicChannelCount("live"),
     getPublicCategories("live"),
   ]);
 
@@ -13,8 +13,7 @@ export default async function LivePage() {
     <PublicContentBrowser
       kind="live"
       title="Live-Kanaele"
-      description={`Oeffentliche Uebersicht mit ${channelData.count} Live-Kanaelen.`}
-      initialItems={channelData.items}
+      description={`Oeffentliche Uebersicht mit ${channelCount} Live-Kanaelen.`}
       initialCategories={categories}
     />
   );

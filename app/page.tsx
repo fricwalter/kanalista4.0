@@ -1,13 +1,13 @@
 import Link from "next/link";
-import { getPublicChannelData } from "@/lib/public-supabase";
+import { getPublicChannelCount } from "@/lib/public-supabase";
 
 export const revalidate = 604800;
 
 export default async function Home() {
   const [live, vod, series] = await Promise.all([
-    getPublicChannelData("live"),
-    getPublicChannelData("vod"),
-    getPublicChannelData("series"),
+    getPublicChannelCount("live"),
+    getPublicChannelCount("vod"),
+    getPublicChannelCount("series"),
   ]);
 
   return (
@@ -25,7 +25,7 @@ export default async function Home() {
         <section className="grid gap-4 md:grid-cols-3">
           <div className="glass-card-hover p-6">
             <p className="text-xs uppercase tracking-wide text-gray-400">Live-Kanaele</p>
-            <p className="mt-2 text-4xl font-bold text-white">{live.count}</p>
+            <p className="mt-2 text-4xl font-bold text-white">{live}</p>
             <Link href="/live" className="mt-4 inline-block text-sm text-violet-200 hover:text-violet-100">
               Zur Live-Uebersicht
             </Link>
@@ -33,7 +33,7 @@ export default async function Home() {
 
           <div className="glass-card-hover p-6">
             <p className="text-xs uppercase tracking-wide text-gray-400">Filme</p>
-            <p className="mt-2 text-4xl font-bold text-white">{vod.count}</p>
+            <p className="mt-2 text-4xl font-bold text-white">{vod}</p>
             <Link href="/filme" className="mt-4 inline-block text-sm text-violet-200 hover:text-violet-100">
               Zur Film-Uebersicht
             </Link>
@@ -41,7 +41,7 @@ export default async function Home() {
 
           <div className="glass-card-hover p-6">
             <p className="text-xs uppercase tracking-wide text-gray-400">Serien</p>
-            <p className="mt-2 text-4xl font-bold text-white">{series.count}</p>
+            <p className="mt-2 text-4xl font-bold text-white">{series}</p>
             <Link href="/serien" className="mt-4 inline-block text-sm text-violet-200 hover:text-violet-100">
               Zur Serien-Uebersicht
             </Link>

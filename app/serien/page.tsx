@@ -1,11 +1,11 @@
 import PublicContentBrowser from "@/app/_components/public-content-browser";
-import { getPublicCategories, getPublicChannelData } from "@/lib/public-supabase";
+import { getPublicCategories, getPublicChannelCount } from "@/lib/public-supabase";
 
 export const revalidate = 604800;
 
 export default async function SerienPage() {
-  const [channelData, categories] = await Promise.all([
-    getPublicChannelData("series"),
+  const [channelCount, categories] = await Promise.all([
+    getPublicChannelCount("series"),
     getPublicCategories("series"),
   ]);
 
@@ -13,8 +13,7 @@ export default async function SerienPage() {
     <PublicContentBrowser
       kind="series"
       title="Serien"
-      description={`Oeffentliche Uebersicht mit ${channelData.count} Serien.`}
-      initialItems={channelData.items}
+      description={`Oeffentliche Uebersicht mit ${channelCount} Serien.`}
       initialCategories={categories}
     />
   );

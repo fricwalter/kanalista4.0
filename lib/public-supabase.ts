@@ -1,9 +1,8 @@
-import type { CacheCategory, PublicCategory, PublicContentItem } from "@/types/public-content";
+import type { CacheCategory, PublicCategory } from "@/types/public-content";
 
 export const WEEK_REVALIDATE_SECONDS = 604800;
 
 type ChannelCacheResponse = {
-  data: PublicContentItem[] | null;
   channel_count: number | null;
 };
 
@@ -43,23 +42,16 @@ async function fetchPublicRows<T>(path: string): Promise<T[]> {
   return json as T[];
 }
 
-export async function getPublicChannelData(category: CacheCategory): Promise<{
-  items: PublicContentItem[];
-  count: number;
-}> {
+export async function getPublicChannelCount(category: CacheCategory): Promise<number> {
   const query = new URLSearchParams({
-    select: "data,channel_count,fetched_at",
+    select: "channel_count,fetched_at",
     category: `eq.${category}`,
     order: "fetched_at.desc",
     limit: "1",
   });
 
   const rows = await fetchPublicRows<ChannelCacheResponse>(`channel_cache?${query.toString()}`);
-  const first = rows[0];
-  const items = Array.isArray(first?.data) ? first.data : [];
-  const count = typeof first?.channel_count === "number" ? first.channel_count : items.length;
-
-  return { items, count };
+  return typeof rows[0]?.channel_count === "number" ? rows[0].channel_count : 0;
 }
 
 export async function getPublicCategories(type: CacheCategory): Promise<PublicCategory[]> {
@@ -74,4 +66,3 @@ export async function getPublicCategories(type: CacheCategory): Promise<PublicCa
   const first = rows[0];
   return Array.isArray(first?.categories) ? first.categories : [];
 }
-

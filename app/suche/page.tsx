@@ -201,13 +201,14 @@ export default function SuchePage() {
           };
         })
         .filter((entry) => {
-          if (!query) return true;
+          if (query.length < 2) return false;
           return (
             entry.name.toLowerCase().includes(query) ||
             entry.categoryName.toLowerCase().includes(query) ||
             entry.genre.toLowerCase().includes(query)
           );
-        });
+        })
+        .slice(0, 240);
     });
 
     return groups;
@@ -255,6 +256,12 @@ export default function SuchePage() {
             />
             <p className="text-sm text-gray-300">{loading ? "Lade Daten..." : `${total} Treffer`}</p>
           </div>
+          {!loading && search.trim().length < 2 && (
+            <p className="mt-3 text-xs text-gray-400">Mindestens zwei Zeichen eingeben.</p>
+          )}
+          {!loading && search.trim().length >= 2 && (
+            <p className="mt-3 text-xs text-gray-400">Es werden bis zu 240 Treffer pro Bereich angezeigt.</p>
+          )}
         </section>
 
         {(["live", "vod", "series"] as CacheCategory[]).map((kind) => (
