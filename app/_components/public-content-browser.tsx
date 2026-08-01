@@ -64,6 +64,11 @@ function getRating(item: PublicContentItem): string {
   return "";
 }
 
+function formatCacheDate(value: string): string {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return match ? `${match[3]}.${match[2]}.${match[1]}` : "";
+}
+
 async function fetchChannelData(kind: CacheCategory): Promise<PublicContentItem[]> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -137,7 +142,7 @@ export default function PublicContentBrowser({
   lastUpdated,
   initialCategories,
 }: BrowserProps) {
-  const { copy, locale } = useLanguage();
+  const { copy } = useLanguage();
   const keys = CACHE_KEYS[kind];
   const [items, setItems] = useState<PublicContentItem[]>([]);
   const [categories, setCategories] = useState<PublicCategory[]>(initialCategories);
@@ -247,13 +252,7 @@ export default function PublicContentBrowser({
   const title = kind === "live" ? copy.catalog.liveTitle : kind === "vod" ? copy.catalog.moviesTitle : copy.catalog.seriesTitle;
   const unit = kind === "live" ? copy.catalog.liveUnit : kind === "vod" ? copy.catalog.moviesUnit : copy.catalog.seriesUnit;
   const description = `${copy.catalog.publicOverview}: ${channelCount.toLocaleString("de-DE")} ${unit}.`;
-  const updatedAt = lastUpdated
-    ? new Intl.DateTimeFormat(locale, {
-        dateStyle: "medium",
-        timeStyle: "short",
-        timeZone: "Europe/Berlin",
-      }).format(new Date(lastUpdated))
-    : "";
+  const updatedAt = formatCacheDate(lastUpdated);
 
   return (
     <main className="catalog-page">
