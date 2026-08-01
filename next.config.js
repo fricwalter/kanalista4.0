@@ -8,6 +8,15 @@ const nextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/favicon.ico',
+        destination: '/websiteicon.png',
+        permanent: true,
+      },
+    ];
+  },
   // Supabase Auth workaround für Cloudflare
   async headers() {
     return [
